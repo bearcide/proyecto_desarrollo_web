@@ -1,0 +1,39 @@
+{% with ruta=request.resolver_match.url_name %}
+<header>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary-brand">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="{% url 'home' %}">
+        📚 Inscripcion<span class="text-warning">MadeEasy</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navPrincipal" aria-controls="navPrincipal"
+              aria-expanded="false" aria-label="Mostrar menú">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navPrincipal">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item"><a class="nav-link {% if ruta == 'home' %}active{% endif %}" href="{% url 'home' %}">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link {% if ruta == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Mi panel</a></li>
+          <li class="nav-item"><a class="nav-link {% if ruta == 'inscripcion' %}active{% endif %}" href="{% url 'inscripcion' %}">Inscripción</a></li>
+          <li class="nav-item"><a class="nav-link {% if ruta == 'horario' %}active{% endif %}" href="{% url 'horario' %}">Mi horario</a></li>
+          <li class="nav-item ms-lg-3"><a class="btn btn-warning btn-sm" href="{% url 'login' %}">Iniciar sesión</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  {% if ruta == 'home' %}
+  <section class="hero-brand text-white py-5">
+    <div class="container text-center">
+      <h1 class="display-5 fw-bold">Inscríbete sin estrés</h1>
+      <p class="lead mb-4">
+        Plataforma web que simplifica y automatiza el proceso de inscripción escolar
+        según tu número de inscripción y tu horario asignado.
+      </p>
+      <a href="{% url 'login' %}" class="btn btn-warning btn-lg me-2">Entrar</a>
+      <a href="#que-es" class="btn btn-outline-light btn-lg">Conocer el proyecto</a>
+    </div>
+  </section>
+  {% endif %}
+</header>
+{% endwith %}
