@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Inicio · InscripcionMadeEasy{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <h1>Inscríbete con tu horario ya asignado.</h1>
+        <p class="lead-text">
+          Consulta tu número de inscripción, elige materias con cupo y confirma
+          sin cruces de horario. Todo desde el celular o la computadora.
+        </p>
+        <div class="d-flex flex-wrap gap-2 mt-4">
+          <a href="{% url 'login' %}" class="btn-brand">Iniciar sesión</a>
+          <a href="#como-funciona" class="btn-line">Ver cómo funciona</a>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="panel panel-tt">
+          <div class="panel-head">Así se ve tu horario semanal</div>
+          <div class="tt" role="img" aria-label="Ilustración de un horario semanal">
+            <div class="tt-day" style="grid-column:2;grid-row:1">Lun</div><div class="tt-day" style="grid-column:3;grid-row:1">Mar</div>
+            <div class="tt-day" style="grid-column:4;grid-row:1">Mié</div><div class="tt-day" style="grid-column:5;grid-row:1">Jue</div>
+            <div class="tt-day" style="grid-column:6;grid-row:1">Vie</div>
+            <div class="tt-hour" style="grid-row:2">8:00</div><div class="tt-hour" style="grid-row:3">9:00</div>
+            <div class="tt-hour" style="grid-row:4">10:00</div><div class="tt-hour" style="grid-row:5">11:00</div>
+            <div class="tt-hour" style="grid-row:6">12:00</div><div class="tt-hour" style="grid-row:7">13:00</div>
+            <div class="tt-block t1" style="grid-column:2;grid-row:2 / span 2"></div><div class="tt-block t1" style="grid-column:4;grid-row:2 / span 2"></div>
+            <div class="tt-block t2" style="grid-column:3;grid-row:4 / span 2"></div><div class="tt-block t2" style="grid-column:5;grid-row:4 / span 2"></div>
+            <div class="tt-block t5" style="grid-column:4;grid-row:6 / span 2"></div><div class="tt-block t5" style="grid-column:6;grid-row:6 / span 2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="como-funciona" class="section">
+  <div class="container">
+    <h2 class="section-title">Cómo funciona</h2>
+    <ol class="steps">
+      <li>
+        <span class="step-n">1</span>
+        <h3>Recibes tu número y tu ventana</h3>
+        <p>El sistema te asigna un número de inscripción y la hora en que puedes inscribirte. Lo ves en tu panel con cuenta regresiva.</p>
+      </li>
+      <li>
+        <span class="step-n">2</span>
+        <h3>Eliges tus materias</h3>
+        <p>Cada materia muestra horario, cupo y requisitos. Si hay cruce, el grupo está lleno o falta un requisito, te avisa antes de que lo intentes.</p>
+      </li>
+      <li>
+        <span class="step-n">3</span>
+        <h3>Confirmas y ves tu horario</h3>
+        <p>Al confirmar, tu horario semanal queda listo para consultar en cualquier momento.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container">
+    <h2 class="section-title">Pensado para tres tipos de usuario</h2>
+    <div class="audience">
+      <div>
+        <h3>Estudiantes</h3>
+        <p>Menos carga mental el día de la inscripción y una pantalla pensada para usarse desde el celular.</p>
+      </div>
+      <div>
+        <h3>Profesores</h3>
+        <p>Grupos y cupos claros, con un cambio gradual que no sorprende a nadie.</p>
+      </div>
+      <div>
+        <h3>Administrativos</h3>
+        <p>Gestión de horarios y números de inscripción sobre un sistema estable que no falla en horas pico.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

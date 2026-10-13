@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Mi horario · InscripcionMadeEasy{% endblock %}
+{% block content %}
+<div class="container page">
+  <div class="page-head">
+    <div>
+      <h1>Mi horario</h1>
+      <p class="muted" id="resumen">Cargando…</p>
+    </div>
+    <a href="{% url 'inscripcion' %}" class="btn-line">Cambiar materias</a>
+  </div>
+
+  <div id="alertas" aria-live="polite"></div>
+
+  <div id="estado-lleno" hidden>
+    <div id="sin-horarios" class="aviso warn" hidden><span>Las materias de tu selección todavía no tienen horarios en el servidor, por eso no hay cuadrícula.</span></div>
+    <div id="panel-horario" class="panel panel-tt panel-tt-lg" hidden><div id="panel-horario-grid"></div></div>
+    <ul class="legend" id="leyenda"></ul>
+  </div>
+
+  <div id="estado-vacio" class="empty" hidden>
+    <h2>Todavía no tienes materias seleccionadas</h2>
+    <p class="muted">Cuando elijas materias en la inscripción, tu horario aparece aquí.</p>
+    <a href="{% url 'inscripcion' %}" class="btn-brand">Elegir materias</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% load static %}
+<script src="{% static 'js/horario.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Inscripción · InscripcionMadeEasy{% endblock %}
+{% block content %}
+<div class="container page">
+  <div class="page-head">
+    <div>
+      <h1>Inscripción de materias</h1>
+      <p class="muted">Elige materias de tu plan de estudios. Te avisamos si hay cruce de horario, falta un requisito o el grupo está lleno.</p>
+    </div>
+  </div>
+
+  <div id="alertas" aria-live="polite"></div>
+
+  <div class="row g-4">
+    <div class="col-lg-7 col-xl-8">
+      <div class="toolbar">
+        <input type="search" id="buscador" placeholder="Buscar por materia o clave" aria-label="Buscar materias">
+        <select id="filtro-semestre" class="form-select form-select-sm w-auto" aria-label="Filtrar por semestre">
+          <option value="">Todos los semestres</option>
+        </select>
+      </div>
+      <ul id="lista-materias" class="mat-list"></ul>
+    </div>
+
+    <div class="col-lg-5 col-xl-4">
+      <aside class="panel sticky-panel">
+        <div class="panel-head">Tu selección</div>
+        <div id="tt-mini"></div>
+        <ul id="seleccion" class="sel-list"></ul>
+        <div class="sel-foot">
+          <div class="d-flex justify-content-between mb-3"><span>Créditos</span><strong id="total-creditos">0</strong></div>
+          <button id="confirmar" class="btn-brand w-100" disabled>Confirmar inscripción</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% load static %}
+<script src="{% static 'js/inscripcion.js' %}"></script>
+{% endblock %}

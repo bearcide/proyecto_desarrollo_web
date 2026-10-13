@@ -1,0 +1,31 @@
+{% with ruta=request.resolver_match.url_name %}
+<header class="site-header">
+  <nav class="navbar navbar-expand-md navbar-light" aria-label="Principal">
+    <div class="container">
+      <a class="brand" href="{% url 'home' %}">
+        <svg class="brand-mark" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+          <rect x="2" y="3" width="6" height="11" rx="1.5" fill="#0F4C81"/>
+          <rect x="9" y="3" width="6" height="7" rx="1.5" fill="#E3A62B"/>
+          <rect x="16" y="3" width="6" height="15" rx="1.5" fill="#0F4C81"/>
+          <rect x="2" y="16" width="13" height="5" rx="1.5" fill="#0F4C81" opacity=".35"/>
+        </svg>
+        <span>InscripcionMadeEasy</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navPrincipal" aria-controls="navPrincipal"
+              aria-expanded="false" aria-label="Mostrar menú">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navPrincipal">
+        <ul class="navbar-nav ms-md-auto align-items-md-center gap-md-1">
+          <li class="nav-item"><a class="nav-link {% if ruta == 'home' %}active{% endif %}" href="{% url 'home' %}">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link {% if ruta == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Mi panel</a></li>
+          <li class="nav-item"><a class="nav-link {% if ruta == 'inscripcion' %}active{% endif %}" href="{% url 'inscripcion' %}">Inscripción</a></li>
+          <li class="nav-item"><a class="nav-link {% if ruta == 'horario' %}active{% endif %}" href="{% url 'horario' %}">Mi horario</a></li>
+          <li class="nav-item ms-md-3 mt-2 mt-md-0"><a class="btn-ink" id="btn-sesion" href="{% url 'login' %}">Iniciar sesión</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+</header>
+{% endwith %}

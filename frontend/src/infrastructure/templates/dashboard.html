@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Mi panel · InscripcionMadeEasy{% endblock %}
+{% block content %}
+<div class="container page">
+  <div class="page-head">
+    <div>
+      <h1 id="alumno-nombre">Cargando…</h1>
+      <p class="muted" id="alumno-detalle">&nbsp;</p>
+    </div>
+    <a href="{% url 'inscripcion' %}" class="btn-brand">Ir a inscripción</a>
+  </div>
+
+  <div id="alertas" aria-live="polite"></div>
+
+  <div class="strip">
+    <div>
+      <div class="strip-label">Número de cuenta</div>
+      <div class="strip-value" id="num-cuenta">—</div>
+      <div class="muted small">Inscripción n.º <span id="num-inscripcion">—</span></div>
+    </div>
+    <div>
+      <div class="strip-label">Tu ventana de inscripción</div>
+      <div class="strip-text" id="ventana-texto">—</div>
+      <div id="cuenta-regresiva" class="countdown">Calculando…</div>
+    </div>
+    <div>
+      <div class="strip-label">Materias cursadas</div>
+      <div class="strip-value" id="stat-cursadas">—</div>
+      <div class="muted small" id="stat-creditos">&nbsp;</div>
+    </div>
+  </div>
+
+  <h2 class="section-title mt-5">Materias de tu semestre</h2>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Clave</th><th>Materia</th><th class="num">Créditos</th><th>Requisitos</th></tr></thead>
+      <tbody id="tabla-materias"><tr><td colspan="4" class="muted">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% load static %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

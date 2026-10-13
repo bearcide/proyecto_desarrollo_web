@@ -1,0 +1,11 @@
+# Python 3.10+
+# Rangos compatibles: en Python 3.10/3.11 pip instalará Django 5.2 LTS;
+# en Python 3.12+ instalará la última versión permitida.
+Django>=5.2,<7.0
+djangorestframework>=3.16,<4.0
+psycopg2-binary>=2.9,<3.0
+django-environ>=0.12,<1.0
+django-cors-headers>=4.7,<5.0
+
+# --- Azure App Service (descomentar al desplegar) ---
+# gunicorn>=23.0,<24.0
