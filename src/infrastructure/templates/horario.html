@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Mi horario · InscripcionMadeEasy{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1 class="h3 mb-3">Mi horario</h1>
+  <div class="table-responsive">
+    <table class="table table-bordered text-center align-middle horario">
+      <thead class="table-light">
+        <tr><th>Hora</th>{% for d in dias %}<th>{{ d }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for fila in filas %}
+        <tr>
+          <th class="table-light small">{{ fila.hora }}</th>
+          {% for celda in fila.celdas %}
+            {% if celda %}
+            <td class="celda-materia c{{ celda.id }}"><strong>{{ celda.nombre }}</strong><br><small>{{ celda.profesor }}</small></td>
+            {% else %}<td></td>{% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not inscritas %}<p class="text-muted">Todavía no tienes materias inscritas.</p>{% endif %}
+</div>
+{% endblock %}

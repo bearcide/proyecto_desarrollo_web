@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio · InscripcionMadeEasy{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+  <section id="que-es" class="mb-5">
+    <h2 class="h3 mb-3">¿Qué es InscripcionMadeEasy?</h2>
+    <p>
+      Es un SaaS creado para resolver la ineficiencia, el estrés y la incertidumbre
+      del proceso de inscripción actual. Permite a los estudiantes inscribirse en su
+      horario asignado e incorpora un motor de automatización basado en el número de
+      inscripción, con la estabilidad y seguridad que exige un proceso crítico.
+    </p>
+  </section>
+
+  <section id="para-quien" class="mb-5">
+    <h2 class="h3 mb-3">¿Para quién es?</h2>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+          <h3 class="h5">🎓 Estudiantes</h3>
+          <p class="mb-0">Menos carga mental el día de la inscripción, también desde el celular.</p>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+          <h3 class="h5">🧑‍🏫 Profesores</h3>
+          <p class="mb-0">Visibilidad clara de grupos y cupos con un cambio gradual y sin sorpresas.</p>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+          <h3 class="h5">🗂️ Administrativos</h3>
+          <p class="mb-0">Gestión de horarios y números de inscripción con un sistema estable y seguro.</p>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tecnologias" class="mb-4">
+    <h2 class="h3 mb-3">Tecnologías</h2>
+    <ul class="list-inline">
+      <li class="list-inline-item badge text-bg-dark">Python + Django</li>
+      <li class="list-inline-item badge text-bg-dark">PostgreSQL</li>
+      <li class="list-inline-item badge text-bg-dark">HTML5 + Bootstrap 5</li>
+      <li class="list-inline-item badge text-bg-dark">Docker</li>
+    </ul>
+    <p class="text-muted small mb-0">Arquitectura MVC desacoplada mediante capa de servicios (ver ADR 001).</p>
+  </section>
+
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Mi panel · InscripcionMadeEasy{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">Hola, {{ estudiante.nombre }}</h1>
+      <span class="text-muted">{{ estudiante.carrera }} · Semestre {{ estudiante.semestre }} · Matrícula {{ estudiante.matricula }}</span>
+    </div>
+    <a href="{% url 'inscripcion' %}" class="btn btn-primary mt-2 mt-md-0">Ir a inscripción</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card h-100 border-warning"><div class="card-body text-center">
+        <div class="text-muted small">Tu número de inscripción</div>
+        <div class="display-4 fw-bold">#{{ estudiante.numero_inscripcion }}</div>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100"><div class="card-body text-center">
+        <div class="text-muted small">Tu ventana de inscripción</div>
+        <div class="fw-semibold">{{ estudiante.ventana_texto }}</div>
+        <div id="cuenta-regresiva" class="h4 mt-2 mb-0" data-inicio="{{ estudiante.ventana_inicio }}">—</div>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100"><div class="card-body text-center">
+        <div class="text-muted small">Materias inscritas</div>
+        <div class="display-4 fw-bold">{{ inscritas|length }}</div>
+        <div class="text-muted small">{{ creditos }} créditos</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header fw-semibold">Materias inscritas</div>
+    <ul class="list-group list-group-flush">
+      {% for m in inscritas %}
+      <li class="list-group-item d-flex justify-content-between">
+        <span>{{ m.nombre }} <small class="text-muted">({{ m.clave }})</small></span>
+        <span class="text-muted">{{ m.profesor }}</span>
+      </li>
+      {% empty %}
+      <li class="list-group-item text-muted">Aún no tienes materias inscritas.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const el = document.getElementById('cuenta-regresiva');
+  const inicio = new Date(el.dataset.inicio).getTime();
+  function tick() {
+    const d = inicio - Date.now();
+    if (d <= 0) { el.textContent = '¡Ya puedes inscribirte!'; el.className = 'h5 mt-2 mb-0 text-success'; return; }
+    const dias = Math.floor(d / 864e5), h = Math.floor(d % 864e5 / 36e5),
+          m = Math.floor(d % 36e5 / 6e4), s = Math.floor(d % 6e4 / 1e3);
+    el.textContent = `${dias}d ${h}h ${m}m ${s}s`;
+    setTimeout(tick, 1000);
+  }
+  tick();
+})();
+</script>
+{% endblock %}

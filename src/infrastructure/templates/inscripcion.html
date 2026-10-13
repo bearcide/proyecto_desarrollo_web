@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Inscripción · InscripcionMadeEasy{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1 class="h3 mb-1">Inscripción de materias</h1>
+  <p class="text-muted">Inscripción #{{ estudiante.numero_inscripcion }} · Selecciona tus materias; te avisaremos si hay cruce de horario, falta un requisito o el grupo está lleno.</p>
+
+  <div id="alertas"></div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <input type="search" id="buscador" class="form-control mb-3" placeholder="Buscar por nombre, clave o profesor…">
+      <div id="lista-materias" class="vstack gap-3"></div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card sticky-top" style="top:1rem">
+        <div class="card-header fw-semibold">Mi selección</div>
+        <ul id="seleccion" class="list-group list-group-flush"></ul>
+        <div class="card-body">
+          <div class="d-flex justify-content-between mb-3">
+            <span>Créditos</span><strong id="total-creditos">0</strong>
+          </div>
+          <button id="confirmar" class="btn btn-success w-100" disabled>Confirmar inscripción</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ materias|json_script:"datos-materias" }}
+{{ estudiante.materias_aprobadas|json_script:"datos-aprobadas" }}
+{{ inscritas_ids|json_script:"datos-inscritas" }}
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/inscripcion.js' %}"></script>
+{% endblock %}
