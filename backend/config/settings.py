@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     # Terceros
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
     # Locales
     'apps.core.apps.CoreConfig',
 ]
@@ -116,6 +117,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': env.int('API_PAGE_SIZE', default=25),
     'DEFAULT_THROTTLE_CLASSES': [],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'InscripcionMadeEasy API',
+    'DESCRIPTION': 'API RESTful multi-tenant para inscripciones escolares',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,  # La schema la exponemos con una ruta explícita (name='schema').
 }
 
 

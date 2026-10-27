@@ -1,3 +1,5 @@
+from drf_spectacular.openapi import OpenApiResponse
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -107,3 +109,14 @@ class AlumnoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         return _filtrar_por_id(queryset, self.request, 'plan_estudios', 'plan_estudios_id')
+
+    @extend_schema(
+        summary='Crear un nuevo alumno',
+        request=AlumnoSerializer,
+        responses={
+            201: OpenApiResponse(response=AlumnoSerializer, description='Alumno creado exitosamente'),
+            400: OpenApiResponse(description='Error de validación en los datos de entrada (RFC 7807)'),
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)

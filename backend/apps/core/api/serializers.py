@@ -17,8 +17,8 @@ class TenantPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
     def get_queryset(self):
         queryset = super().get_queryset()
         tenant = _tenant_del_contexto(self.context)
-        if queryset is None or tenant is None:
-            return queryset.none() if queryset is not None else queryset
+        if tenant is None:
+            return queryset.none()
         return queryset.filter(tenant=tenant)
 
 
@@ -36,23 +36,27 @@ class TenantScopedSerializer(serializers.ModelSerializer):
         attrs = super().validate(attrs)
         tenant = _tenant_del_contexto(self.context)
         for campos in self.unique_per_tenant:
-            filtro = {}
-            for campo in campos:
-                if campo in attrs:
-                    filtro[campo] = attrs[campo]
-                elif self.instance is not None:
-                    filtro[campo] = getattr(self.instance, campo)
-                else:
-                    break
-            else:
-                existentes = self.Meta.model.objects.filter(tenant=tenant, **filtro)
-                if self.instance is not None:
-                    existentes = existentes.exclude(pk=self.instance.pk)
-                if existentes.exists():
-                    raise serializers.ValidationError(
-                        {campos[-1]: 'Ya existe un registro con este valor en tu escuela.'}
-                    )
+            self._validar_unicidad(campos, attrs, tenant)
         return attrs
+
+    def _validar_unicidad(self, campos, attrs, tenant):
+        """Valida que el valor sea único dentro del tenant (excluyendo el propio registro al editar)."""
+        filtro = {}
+        for campo in campos:
+            if campo in attrs:
+                filtro[campo] = attrs[campo]
+            elif self.instance is not None:
+                filtro[campo] = getattr(self.instance, campo)
+            else:
+                break
+        else:
+            existentes = self.Meta.model.objects.filter(tenant=tenant, **filtro)
+            if self.instance is not None:
+                existentes = existentes.exclude(pk=self.instance.pk)
+            if existentes.exists():
+                raise serializers.ValidationError(
+                    {campos[-1]: 'Ya existe un registro con este valor en tu escuela.'}
+                )
 
 
 class TenantSerializer(serializers.ModelSerializer):
