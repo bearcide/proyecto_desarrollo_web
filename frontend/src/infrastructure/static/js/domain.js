@@ -49,11 +49,11 @@
   }
 
   // ---------- reglas de UI (el backend debe revalidar siempre) ----------
-  const choca = (a, b) => a.horarios.some((x) => b.horarios.some((y) => x.dia === y.dia && x.ini < y.fin && y.ini < x.fin));
+  const choca = (a, b) => a.horarios.some((x) => b.horarios.some((y) => x.dia === y.dia && x.inicio < y.fin && y.inicio < x.fin));
   /** Solo se puede validar con la lista de aprobadas (ids). Si el backend no la da, devuelve []. */
   const faltantes = (m, aprobadasIds) => (aprobadasIds ? m.requisitosIds.filter((id) => !aprobadasIds.includes(id)) : []);
   const hayCupo = (m) => m.cupo == null || (m.inscritos ?? 0) < m.cupo;
-  const txtHorario = (m) => m.horarios.map((h) => `${h.dia.slice(0, 3)} ${h.ini}:00 a ${h.fin}:00`).join(', ');
+  const txtHorario = (m) => m.horarios.map((h) => `${h.dia.slice(0, 3)} ${h.inicio}:00 a ${h.fin}:00`).join(', ');
 
   // ---------- selección local (borrador) ----------
   const claveSel = (alumnoId) => `ime.seleccion.${alumnoId}`;
@@ -73,8 +73,8 @@
     for (let x = H0; x < H1; x++) h += `<div class="tt-hour" style="grid-row:${x - H0 + 2}">${x}:00</div>`;
     materias.forEach((m) => m.horarios.forEach((b) => {
       const col = DIAS.indexOf(b.dia);
-      if (col < 0 || b.ini < H0 || b.fin > H1) return;
-      h += `<div class="tt-block t${m.tono}" style="grid-column:${col + 2};grid-row:${b.ini - H0 + 2} / span ${b.fin - b.ini}">
+      if (col < 0 || b.inicio < H0 || b.fin > H1) return;
+      h += `<div class="tt-block t${m.tono}" style="grid-column:${col + 2};grid-row:${b.inicio - H0 + 2} / span ${b.fin - b.inicio}">
         <strong>${esc(m.nombre)}</strong><span>${esc(m.clave)}</span></div>`;
     }));
     return h + '</div>';

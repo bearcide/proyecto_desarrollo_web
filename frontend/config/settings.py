@@ -137,7 +137,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # ---------------------------------------------------------------------------
 # Conexión con la API REST (backend Django DRF). Ver README_FUSION.md
 # ---------------------------------------------------------------------------
-API_BASE_URL = config('API_BASE_URL', default='http://127.0.0.1:8001/api/v1')
+API_BASE_URL = config('API_BASE_URL', default='http://127.0.0.1:8000/api/v1')
 # Token simulado (solo DEBUG y sin API_LOGIN_PATH). El backend actual NO lo valida todavía.
 API_DEV_TOKEN = config('API_DEV_TOKEN', default='dev-token-simulado')
 # Ruta de login JWT cuando exista (p. ej. 'auth/token/'). Vacío = login simulado.

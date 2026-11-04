@@ -32,6 +32,12 @@ class Nodo(TimeStampedModel):
         symmetrical=False, related_name='es_prerrequisito_de', blank=True,
         verbose_name='prerrequisitos',
     )
+    # Cupo de alumnos por grupo horario. Null = sin límite conocido (lo decide el backend).
+    cupo = models.PositiveIntegerField('cupo', null=True, blank=True)
+    # Profesor a cargo del grupo (campo libre, no escala).
+    profesor = models.CharField('profesor', max_length=150, blank=True, default='')
+    # Horarios del grupo: [{ "dia": "Lunes", "inicio": 8, "fin": 14 }].
+    horarios = models.JSONField('horarios', default=list, blank=True)
 
     class Meta:
         verbose_name = 'nodo (materia)'

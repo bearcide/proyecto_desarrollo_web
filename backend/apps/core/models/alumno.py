@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -20,6 +21,10 @@ class Alumno(TimeStampedModel):
         PlanEstudios, on_delete=models.PROTECT, related_name='alumnos',
         verbose_name='plan de estudios',
     )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='alumnos', verbose_name='usuario',
+    )
     nombre = models.CharField('nombre', max_length=100)
     apellido_paterno = models.CharField('apellido paterno', max_length=100)
     apellido_materno = models.CharField('apellido materno', max_length=100, blank=True)
@@ -37,6 +42,15 @@ class Alumno(TimeStampedModel):
     promedio_acumulado = models.FloatField('promedio acumulado', default=0.0)
     indicador_escolar = models.FloatField('indicador escolar', default=0.0)
     activo = models.BooleanField('activo', default=True)
+
+    # IDs de las materias que el alumno ya aprobó (prerrequisitos a validar).
+    materias_aprobadas_ids = models.JSONField(
+        'ids de materias aprobadas', default=list, blank=True,
+    )
+    # Datos de la inscripción: número de inscripción, ventana y texto informativo.
+    numero_inscripcion = models.CharField('número de inscripción', max_length=32, blank=True, default='')
+    ventana_inicio = models.DateTimeField('ventana de inscripción', null=True, blank=True)
+    ventana_texto = models.CharField('texto de ventana', max_length=255, blank=True, default='')
 
     class Meta:
         verbose_name = 'alumno'
