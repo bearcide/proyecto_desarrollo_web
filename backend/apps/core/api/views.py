@@ -1,0 +1,199 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from apps.core.models import Alumno, Nodo, NodoEstadistico, PlanEstudios, Prerrequisito, Tenant, MembresiaTenant
+from apps.core.services.errors import ReglaDeNegocioError
+from apps.core.services.prerrequisitos import crear_prerrequisito
+
+from .mixins import TenantScopedMixin
+from apps.core.services.identidad import obtener_alumno
+from .serializers import (
+    AlumnoSerializer,
+    AlumnoPerfilSerializer,
+    ProblemDetailsSerializer,
+    MembresiaPerfilSerializer,
+    MatriculaTokenObtainPairSerializer,
+    NodoEstadisticoSerializer,
+    NodoSerializer,
+    PlanEstudiosSerializer,
+    PrerrequisitoSerializer,
+    TenantSerializer,
+)
+
+
+class MatriculaTokenObtainPairView(TokenObtainPairView):
+    """Obtiene el par de tokens JWT validando la **matrícula** y la contraseña."""
+
+    serializer_class = MatriculaTokenObtainPairSerializer
+
+
+def _filtrar_por_id(queryset, request, parametro, campo):
+    """Filtra por ?parametro=<id numérico>; ignora valores no numéricos."""
+    valor = request.query_params.get(parametro)
+    if valor and valor.isdigit():
+        return queryset.filter(**{campo: int(valor)})
+    return queryset
+
+
+@extend_schema(parameters=[OpenApiParameter(
+    name='X-Tenant-ID', location=OpenApiParameter.HEADER, type=str,
+    description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
+)])
+class TenantViewSet(
+    TenantScopedMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """La escuela del usuario. Sin crear ni borrar: el alta/baja es de la plataforma."""
+
+    queryset = Tenant.objects.all()
+    serializer_class = TenantSerializer
+    tenant_lookup = 'pk'
+
+
+@extend_schema(parameters=[OpenApiParameter(
+    name='X-Tenant-ID', location=OpenApiParameter.HEADER, type=str,
+    description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
+)])
+class PlanEstudiosViewSet(TenantScopedMixin, viewsets.ModelViewSet):
+    queryset = PlanEstudios.objects.all()
+    serializer_class = PlanEstudiosSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['nombre']
+    ordering_fields = ['nombre', 'created_at']
+
+
+@extend_schema(parameters=[OpenApiParameter(
+    name='X-Tenant-ID', location=OpenApiParameter.HEADER, type=str,
+    description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
+)])
+class NodoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
+    queryset = Nodo.objects.select_related('plan_estudios').prefetch_related('prerrequisitos')
+    serializer_class = NodoSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['clave', 'nombre']
+    ordering_fields = ['clave', 'nombre', 'semestre', 'creditos', 'created_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _filtrar_por_id(queryset, self.request, 'plan_estudios', 'plan_estudios_id')
+
+
+@extend_schema(parameters=[OpenApiParameter(
+    name='X-Tenant-ID', location=OpenApiParameter.HEADER, type=str,
+    description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
+)])
+class PrerrequisitoViewSet(
+    TenantScopedMixin,
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Aristas del grafo. Sin PUT/PATCH: cambiar una arista es borrarla y crear otra."""
+
+    queryset = Prerrequisito.objects.select_related('nodo', 'prerrequisito').order_by('pk')
+    serializer_class = PrerrequisitoSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _filtrar_por_id(queryset, self.request, 'nodo', 'nodo_id')
+
+    def perform_create(self, serializer):
+        try:
+            # La lógica (mismo plan, duplicados, ciclos) vive en la capa de servicios.
+            serializer.instance = crear_prerrequisito(
+                tenant=self.get_tenant(), **serializer.validated_data,
+            )
+        except ReglaDeNegocioError as exc:
+            raise ValidationError({'detail': str(exc)})
+
+
+@extend_schema(parameters=[OpenApiParameter(
+    name='X-Tenant-ID', location=OpenApiParameter.HEADER, type=str,
+    description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
+)])
+class NodoEstadisticoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
+    queryset = NodoEstadistico.objects.select_related('nodo').order_by('pk')
+    serializer_class = NodoEstadisticoSerializer
+    filter_backends = [OrderingFilter]
+    ordering_fields = ['alumnos_inscritos', 'alumnos_pasados', 'promedio_acumulado']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _filtrar_por_id(queryset, self.request, 'nodo', 'nodo_id')
+
+
+@extend_schema(parameters=[OpenApiParameter(
+    name='X-Tenant-ID', location=OpenApiParameter.HEADER, type=str,
+    description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
+)])
+class AlumnoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
+    queryset = Alumno.objects.select_related('plan_estudios')
+    serializer_class = AlumnoSerializer
+    alumnos_por_propietario = True
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['numero_de_cuenta', 'nombre', 'apellido_paterno', 'apellido_materno']
+    ordering_fields = ['apellido_paterno', 'nombre', 'numero_de_cuenta', 'semestre', 'created_at']
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return self.queryset.none()
+        queryset = super().get_queryset()
+        identidad = self.get_identidad()
+        if not identidad.membresia.es_administrador:
+            queryset = queryset.filter(pk=obtener_alumno(identidad).pk)
+        return _filtrar_por_id(queryset, self.request, 'plan_estudios', 'plan_estudios_id')
+
+    def get_serializer_class(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return AlumnoSerializer
+        if self.action == 'me' or not self.get_identidad().membresia.es_administrador:
+            return AlumnoPerfilSerializer
+        return AlumnoSerializer
+
+    @extend_schema(responses={200: AlumnoPerfilSerializer, **{
+        (status, 'application/problem+json'): ProblemDetailsSerializer
+        for status in (400, 401, 403, 404, 409, 405)
+    }})
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        alumno = obtener_alumno(self.get_identidad())
+        response = Response(self.get_serializer(alumno).data)
+        response['Cache-Control'] = 'no-store'
+        return response
+
+    @extend_schema(
+        summary='Crear un nuevo alumno',
+        request=AlumnoSerializer,
+        responses={
+            201: OpenApiResponse(response=AlumnoSerializer, description='Alumno creado exitosamente'),
+            400: OpenApiResponse(description='Error de validación en los datos de entrada (RFC 7807)'),
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+
+class MembresiaViewSet(viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = MembresiaPerfilSerializer
+
+    @extend_schema(responses={200: MembresiaPerfilSerializer(many=True),
+        (401, 'application/problem+json'): ProblemDetailsSerializer})
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        # Descubrimiento: no requiere seleccionar escuela ni concede acceso académico.
+        membresias = MembresiaTenant.objects.filter(user=request.user).select_related('tenant').order_by('tenant_id')
+        response = Response(self.get_serializer(membresias, many=True).data)
+        response['Cache-Control'] = 'no-store'
+        return response

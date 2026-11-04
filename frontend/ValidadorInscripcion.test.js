@@ -1,9 +1,9 @@
-const {
+import {
   cumpleRequisitos,
   hayCupoDisponible,
   hayConflictoHorario,
   evaluarSolicitudInscripcion,
-} = require('../domain/ValidadorInscripcion');
+} from './src/domain/ValidadorInscripcion';
 
 describe('cumpleRequisitos', () => {
   test('permite inscripción si se cumplen todos los requisitos', () => {

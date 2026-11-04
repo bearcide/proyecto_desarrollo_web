@@ -1,0 +1,13 @@
+plan,clave,nombre,creditos,semestre,prerrequisitos
+Bachillerato General,BG1,Matemáticas I,3,1,
+Bachillerato General,BG2,Física I,4,2,BG1
+Bachillerato General,BG3,Química I,4,2,BG1
+Bachillerato General,BG4,Biología General,3,3,BG3
+Bachillerato General,BG5,Historia de México,3,3,
+Bachillerato General,BG6,Inglés I,2,1,
+Ciclo Técnico en Gestión,CT1,Contabilidad Básica,3,1,
+Ciclo Técnico en Gestión,CT2,Informática Aplicada,4,2,CT1
+Ciclo Técnico en Gestión,CT3,Marketing Digital,3,3,CT2
+Ciclo Técnico en Gestión,CT4,Gestión Financiera,3,4,CT3
+Ciclo Técnico en Gestión,CT5,Redes Informáticas,3,3,CT2
+Ciclo Técnico en Gestión,CT6,Administración de Empresas,3,5,CT4

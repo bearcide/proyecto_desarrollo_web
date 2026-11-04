@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión · InscripcionMadeEasy{% endblock %}
+{% block content %}
+<section class="auth">
+  <div class="auth-box">
+    <h1>Iniciar sesión</h1>
+    <p class="muted">Usa tu matrícula y tu contraseña escolar.</p>
+    <div id="alertas" aria-live="polite"></div>
+    {% if app_config.simulatedAuth %}<div class="aviso warn" role="note"><span>Modo desarrollo: la contraseña no se valida; solo se busca la matrícula en la API.</span></div>{% endif %}
+    <form id="form-login" novalidate>
+      <label for="matricula">Matrícula</label>
+      <input type="text" id="matricula" name="matricula" autocomplete="username" required autofocus>
+      <label for="password">Contraseña</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+      <button type="submit" class="btn-brand w-100 mt-3">Entrar</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}{% load static %}
+<script src="{% static 'js/login.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,15 @@
+.env
+venv/
+.venv/
+__pycache__/
+*.pyc
+staticfiles/
+db.sqlite3
+.idea/
+.vscode/
+
+# Bases ficticias locales de demo (nunca versionar)
+demo_*.sqlite3
+demo_*.sqlite3-journal
+demo_*.sqlite3-wal
+demo_*.sqlite3-shm

@@ -1,0 +1,25 @@
+materia,clave,profesor,cupo,horarios
+BG1,G1,Mtra. Aurora Reyes,30,Lunes:08:00-10:00
+BG1,G2,Mtra. Aurora Reyes,30,Martes:08:00-10:00
+BG2,G1,Mtro. Diego Fuentes,25,Lunes:10:00-14:00
+BG2,G2,Mtro. Diego Fuentes,25,Miercoles:10:00-14:00
+BG3,G1,Lic. Laura Méndez,25,Lunes:12:00-16:00
+BG3,G2,Lic. Laura Méndez,25,Lunes:08:00-12:00
+BG4,G1,Mtra. Marco Salinas,20,Viernes:08:00-10:00
+BG4,G2,Mtra. Marco Salinas,20,Sabado:08:00-10:00
+BG5,G1,Lic. Claudia Ruiz,2,Lunes:14:00-16:00
+BG5,G2,Lic. Claudia Ruiz,2,Miercoles:14:00-16:00
+BG6,G1,Mtra. Jorge Ivan Ramirez,30,Lunes:18:00-20:00
+BG6,G2,Mtra. Jorge Ivan Ramirez,30,Jueves:18:00-20:00
+CT1,G1,Lic. Patricia Luna,30,Lunes:08:00-10:00
+CT1,G2,Lic. Patricia Luna,30,Martes:08:00-10:00
+CT2,G1,Mtro. Fernando Ortega,25,Lunes:10:00-14:00
+CT2,G2,Mtro. Fernando Ortega,25,Miercoles:10:00-14:00
+CT3,G1,Lic. Sandra Vazquez,25,Lunes:12:00-16:00
+CT3,G2,Lic. Sandra Vazquez,25,Jueves:12:00-16:00
+CT4,G1,Mtro. Ricardo Cardenas,20,Viernes:10:00-12:00
+CT4,G2,Mtro. Ricardo Cardenas,20,Sabado:10:00-12:00
+CT5,G1,Lic. Elena Pena,25,Lunes:14:00-16:00
+CT5,G2,Lic. Elena Pena,25,Miercoles:14:00-16:00
+CT6,G1,Mtro. Miguel Angel Santos,30,Lunes:16:00-18:00
+CT6,G2,Mtro. Miguel Angel Santos,30,Jueves:16:00-18:00

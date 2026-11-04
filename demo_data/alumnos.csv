@@ -1,0 +1,101 @@
+matricula,nombre,apellido_paterno,apellido_materno,plan,aprobadas,password
+D001,Maria Fernanda,Hernandez,Lopez,Bachillerato General,BG1,DemoLocal2026!
+D002,Jose Luis,Gomez,Perez,Bachillerato General,BG1,DemoLocal2026!
+D003,Ana Sofia,Ramirez,Diaz,Bachillerato General,BG1,DemoLocal2026!
+D004,Luis Miguel,Torres,Vargas,Bachillerato General,BG1,DemoLocal2026!
+D005,Karla Denisse,Morales,Castro,Bachillerato General,BG1,DemoLocal2026!
+D006,Diego Alejandro,Ortiz,Aguilar,Bachillerato General,,DemoLocal2026!
+D007,Fernanda Guadalupe,Chavez,Nunez,Bachillerato General,,DemoLocal2026!
+D008,Ricardo Ariel,Vega,Mendoza,Bachillerato General,,DemoLocal2026!
+D009,Sofia Isabel,Guerrero,Torres,Bachillerato General,,DemoLocal2026!
+D010,Emilio Nicolas,Ruiz,Campos,Bachillerato General,,DemoLocal2026!
+D011,Valeria Isabel,Flores,Delgado,Bachillerato General,BG1,DemoLocal2026!
+D012,Manuel Antonio,Salas,Rubio,Bachillerato General,BG1,DemoLocal2026!
+D013,Camila Esperanza,Vega,Herrera,Bachillerato General,BG1,DemoLocal2026!
+D014,Alejandro Gabriel,Mendez,Castro,Bachillerato General,BG1,DemoLocal2026!
+D015,Daniela Paulina,Ortega,Reyes,Bachillerato General,BG1,DemoLocal2026!
+D016,Javier Eduardo,Cruz,Vargas,Bachillerato General,BG1,DemoLocal2026!
+D017,Renata Fernanda,Aguilar,Molina,Bachillerato General,BG1,DemoLocal2026!
+D018,Sergio Ivan,Nunez,Flores,Bachillerato General,BG1,DemoLocal2026!
+D019,Monica Yadhira,Serrano,Ortiz,Bachillerato General,BG1,DemoLocal2026!
+D020,Guillermo Leon,Torres,Aguilar,Bachillerato General,BG1,DemoLocal2026!
+D021,Ximena Guadalupe,Delgado,Ramos,Bachillerato General,BG1;BG3,DemoLocal2026!
+D022,Tomas Abraham,Ibarra,Salas,Bachillerato General,BG1;BG3,DemoLocal2026!
+D023,Nicole Elizabeth,Pena,Chavez,Bachillerato General,BG1;BG3,DemoLocal2026!
+D024,Jesus David,Espinoza,Mora,Bachillerato General,BG1;BG3,DemoLocal2026!
+D025,Danelys Marisol,Cardenas,Ruiz,Bachillerato General,BG1;BG3,DemoLocal2026!
+D026,Rafael Alejandro,Delgado,Vazquez,Bachillerato General,BG1;BG3,DemoLocal2026!
+D027,Tatiana Elizabeth,Aguilar,Herrera,Bachillerato General,BG1;BG3,DemoLocal2026!
+D028,Carlos Ivan,Gutierrez,Molina,Bachillerato General,BG1;BG3,DemoLocal2026!
+D029,Valeria Fernanda,Ramos,Cruz,Bachillerato General,BG1;BG3,DemoLocal2026!
+D030,Jose Antonio,Nunez,Delgado,Bachillerato General,BG1;BG3,DemoLocal2026!
+D031,Gabriela Elizabeth,Sanchez,Flores,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D032,Ricardo Omar,Padilla,Mendoza,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D033,Adriana Maria,Chavez,Ruiz,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D034,Victor Hugo,Aguilar,Torres,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D035,Monica Alejandra,Delgado,Castro,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D036,Juan Pablo,Serrano,Herrera,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D037,Fernanda Isabel,Gutierrez,Ramos,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D038,Esteban Alexander,Nunez,Cruz,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D039,Daniela Renata,Chavez,Mendoza,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D040,Luis Fernando,Salas,Aguilar,Bachillerato General,BG1;BG2;BG3,DemoLocal2026!
+D041,Veronica Elizabeth,Delgado,Vargas,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D042,Oscar Alonso,Reyes,Cruz,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D043,Silvia Marisol,Hererra,Flores,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D044,Raul Alberto,Aguilar,Mendoza,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D045,Valeria Elizabeth,Nunez,Delgado,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D046,Marco Antonio,Chavez,Salas,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D047,Daniela Isabel,Gutierrez,Vargas,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D048,Jose Manuel,Ramos,Cruz,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D049,Renata Elizabeth,Padilla,Delgado,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D050,Fernando Alexander,Ortiz,Reyes,Bachillerato General,BG1;BG2;BG3;BG5,DemoLocal2026!
+D051,Camila Esperanza,Flores,Delgado,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D052,Javier Eduardo,Salas,Rubio,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D053,Renata Fernanda,Chavez,Nunez,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D054,Sergio Ivan,Aguilar,Torres,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D055,Monica Yadhira,Delgado,Reyes,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D056,Guillermo Leon,Vargas,Cruz,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D057,Ximena Guadalupe,Pena,Herrera,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D058,Tomas Abraham,Ibarra,Salas,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D059,Nicole Elizabeth,Delgado,Ramos,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D060,Jesus David,Flores,Mendoza,Ciclo Técnico en Gestión,CT1,DemoLocal2026!
+D061,Gabriela Elizabeth,Salas,Rubio,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D062,Ricardo Omar,Chavez,Nunez,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D063,Adriana Maria,Delgado,Vargas,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D064,Victor Hugo,Aguilar,Torres,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D065,Monica Alejandra,Delgado,Castro,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D066,Juan Pablo,Serrano,Herrera,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D067,Fernanda Isabel,Gutierrez,Ramos,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D068,Esteban Alexander,Nunez,Cruz,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D069,Daniela Renata,Chavez,Mendoza,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D070,Luis Fernando,Salas,Aguilar,Ciclo Técnico en Gestión,CT1;CT2,DemoLocal2026!
+D071,Veronica Elizabeth,Delgado,Vargas,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D072,Oscar Alonso,Reyes,Cruz,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D073,Silvia Marisol,Hererra,Flores,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D074,Raul Alberto,Aguilar,Mendoza,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D075,Valeria Elizabeth,Nunez,Delgado,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D076,Marco Antonio,Chavez,Salas,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D077,Daniela Isabel,Gutierrez,Vargas,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D078,Jose Manuel,Ramos,Cruz,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D079,Renata Elizabeth,Padilla,Delgado,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D080,Fernando Alexander,Ortiz,Reyes,Ciclo Técnico en Gestión,CT1;CT2;CT3,DemoLocal2026!
+D081,Camila Esperanza,Flores,Delgado,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D082,Javier Eduardo,Salas,Rubio,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D083,Renata Fernanda,Chavez,Nunez,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D084,Sergio Ivan,Aguilar,Torres,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D085,Monica Yadhira,Delgado,Reyes,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D086,Guillermo Leon,Vargas,Cruz,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D087,Ximena Guadalupe,Pena,Herrera,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D088,Tomas Abraham,Ibarra,Salas,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D089,Nicole Elizabeth,Delgado,Ramos,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D090,Jesus David,Flores,Mendoza,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4,DemoLocal2026!
+D091,Valeria Isabel,Ramirez,Diaz,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D092,Ana Sofia,Ramirez,Diaz,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D093,Luis Miguel,Torres,Vargas,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D094,Karla Denisse,Morales,Castro,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D095,Diego Alejandro,Ortiz,Aguilar,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D096,Fernanda Guadalupe,Chavez,Nunez,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D097,Ricardo Ariel,Vega,Mendoza,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D098,Sofia Isabel,Guerrero,Torres,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D099,Emilio Nicolas,Ruiz,Campos,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
+D100,Karla Denisse,Morales,Castro,Ciclo Técnico en Gestión,CT1;CT2;CT3;CT4;CT5,DemoLocal2026!
