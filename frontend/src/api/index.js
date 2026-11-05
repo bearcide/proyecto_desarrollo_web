@@ -23,8 +23,19 @@ export function decodificarToken(token) {
 /** Extrae un mensaje de error legible para el usuario a partir de respuestas Problem Details o DRF */
 export function obtenerMensajeError(error) {
   if (!error) return 'Ha ocurrido un error inesperado.';
+  // Sin respuesta del servidor (caído, sin red, CORS, timeout): mensaje entendible
+  if (error.request && !error.response) {
+    if (error.code === 'ECONNABORTED') {
+      return 'El servidor tardó demasiado en responder. Inténtalo de nuevo.';
+    }
+    return 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
+  }
+  const status = error.response?.status;
+  if (status >= 500) {
+    return 'El servidor tuvo un problema al procesar la solicitud. Inténtalo de nuevo en unos minutos.';
+  }
   const data = error.response?.data;
-  if (!data) return error.message || 'Error de conexión con el servidor.';
+  if (!data) return error.message || 'No pudimos completar la operación. Inténtalo de nuevo.';
 
   if (typeof data === 'string') return data;
   if (data.detail) return data.detail;

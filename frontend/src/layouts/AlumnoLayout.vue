@@ -36,14 +36,46 @@
 
         <!-- Usuario y Acciones -->
         <div class="navbar-right">
-          <div class="student-user-pill">
-            <div class="user-avatar-sm">
+          <!-- Cuenta: solo el avatar; al pulsarlo muestra los datos del alumno -->
+          <div ref="cuentaRef" class="account-menu">
+            <button
+              type="button"
+              class="avatar-btn"
+              aria-haspopup="true"
+              :aria-expanded="cuentaAbierta ? 'true' : 'false'"
+              aria-controls="account-popover"
+              :aria-label="`Cuenta de ${authStore.nombreCompleto}`"
+              @click="cuentaAbierta = !cuentaAbierta"
+            >
               {{ iniciales }}
-            </div>
-            <div class="user-info-text">
-              <span class="user-fullname">{{ authStore.nombreCompleto }}</span>
-              <span class="user-matricula font-mono">{{ authStore.matriculaOId }}</span>
-            </div>
+            </button>
+
+            <Transition name="popover">
+              <div
+                v-if="cuentaAbierta"
+                id="account-popover"
+                class="account-popover"
+                role="dialog"
+                aria-label="Información de la cuenta"
+              >
+                <div class="popover-avatar" aria-hidden="true">{{ iniciales }}</div>
+                <div class="popover-name">{{ authStore.nombreCompleto }}</div>
+                <div class="popover-sub">Matrícula {{ authStore.matriculaOId }}</div>
+                <div class="popover-list">
+                  <div class="popover-row">
+                    <span>Escuela</span>
+                    <strong>{{ authStore.nombreEscuela }}</strong>
+                  </div>
+                  <div class="popover-row">
+                    <span>Rol</span>
+                    <strong>Alumno</strong>
+                  </div>
+                </div>
+                <router-link to="/alumno/perfil" class="popover-link" @click="cuentaAbierta = false">
+                  Ver perfil académico
+                </router-link>
+              </div>
+            </Transition>
           </div>
 
           <button
@@ -53,6 +85,8 @@
           >
             Salir
           </button>
+
+          <ThemeToggle />
 
           <!-- Toggle Móvil -->
           <button
@@ -117,16 +151,38 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import ThemeToggle from '../components/ThemeToggle.vue';
 import { useNotificationStore } from '../stores/notification';
 
 const authStore = useAuthStore();
 const notifStore = useNotificationStore();
 const router = useRouter();
 
+const route = useRoute();
 const menuMovilAbierto = ref(false);
+const cuentaAbierta = ref(false);
+const cuentaRef = ref(null);
+
+// El menú de cuenta se cierra al hacer clic fuera, con Escape o al navegar
+function alClicFuera(e) {
+  if (cuentaAbierta.value && cuentaRef.value && !cuentaRef.value.contains(e.target)) {
+    cuentaAbierta.value = false;
+  }
+}
+function alTeclear(e) {
+  if (e.key === 'Escape' && cuentaAbierta.value) {
+    cuentaAbierta.value = false;
+    cuentaRef.value?.querySelector('.avatar-btn')?.focus();
+  }
+}
+watch(() => route.fullPath, () => { cuentaAbierta.value = false; });
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', alClicFuera);
+  document.removeEventListener('keydown', alTeclear);
+});
 
 const iniciales = computed(() => {
   const al = authStore.alumno;
@@ -143,6 +199,8 @@ function cerrarSesion() {
 }
 
 onMounted(() => {
+  document.addEventListener('mousedown', alClicFuera);
+  document.addEventListener('keydown', alTeclear);
   // Asegurar que el perfil del alumno esté cargado
   if (!authStore.alumno && authStore.esAlumno) {
     authStore.recargarPerfilAlumno();
@@ -159,7 +217,9 @@ onMounted(() => {
 }
 
 .alumno-navbar {
-  background-color: #ffffff;
+  background-color: var(--bar-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -194,7 +254,7 @@ onMounted(() => {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+  background: var(--accent);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -239,14 +299,13 @@ onMounted(() => {
 }
 
 .nav-item:hover {
-  color: var(--primary);
-  background-color: var(--primary-light);
+  color: var(--text-main);
+  background-color: var(--bg-surface);
 }
 
 .nav-item.router-link-active {
-  color: var(--primary-dark);
+  color: var(--accent-text);
   background-color: var(--primary-light);
-  border: 1px solid var(--primary-border);
 }
 
 .navbar-right {
@@ -255,48 +314,129 @@ onMounted(() => {
   gap: 1rem;
 }
 
-.student-user-pill {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  padding: 0.3rem 0.75rem 0.3rem 0.4rem;
-  border-radius: var(--radius-full);
+.account-menu {
+  position: relative;
 }
 
-.user-avatar-sm {
-  width: 28px;
-  height: 28px;
+.avatar-btn {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
-  color: #ffffff;
-  font-size: 0.75rem;
+  border: 2px solid var(--bg-card);
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--border);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.avatar-btn:hover,
+.avatar-btn[aria-expanded="true"] {
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.avatar-btn:active {
+  transform: scale(0.95);
+}
+
+.account-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  padding: 1.25rem 1.1rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background-color: var(--glass-bg);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--shadow-xl);
+  z-index: 200;
+}
+
+.popover-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font-size: 1.25rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 0.65rem;
 }
 
-.user-info-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.user-fullname {
-  font-size: 0.8125rem;
+.popover-name {
+  font-size: 1.0625rem;
   font-weight: 700;
   color: var(--text-main);
-  max-width: 160px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.user-matricula {
-  font-size: 0.7rem;
+.popover-sub {
+  margin-top: 0.1rem;
+  font-size: 0.8125rem;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.popover-list {
+  width: 100%;
+  margin-top: 0.9rem;
+  border-radius: 10px;
+  background-color: var(--bg-surface);
+  text-align: left;
+}
+
+.popover-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.popover-row + .popover-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.popover-row strong {
+  color: var(--text-main);
+  font-weight: 600;
+  text-align: right;
+}
+
+.popover-link {
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.popover-link:hover {
+  background-color: var(--primary-light);
+}
+
+.popover-enter-active,
+.popover-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.popover-enter-from,
+.popover-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
 }
 
 .mobile-menu-btn {
@@ -313,7 +453,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem 1.5rem;
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   border-bottom: 1px solid var(--border);
 }
 
@@ -341,7 +481,7 @@ onMounted(() => {
 }
 
 .alumno-footer {
-  background: #ffffff;
+  background: var(--bg-card);
   border-top: 1px solid var(--border);
   padding: 1rem 1.5rem;
 }
@@ -381,5 +521,18 @@ onMounted(() => {
   .mobile-nav-drawer {
     display: flex;
   }
+}
+</style>
+
+<style>
+/* A5 · En el portal del alumno no se fuerzan MAYÚSCULAS en insignias ni etiquetas */
+.alumno-shell .badge,
+.alumno-shell .stat-label {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.alumno-shell .badge {
+  font-size: 0.8125rem;
 }
 </style>

@@ -432,7 +432,7 @@ async function ejecutarConfirmacion() {
 
 .chip-count {
   display: inline-block;
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--fill-track);
   padding: 0.1rem 0.5rem;
   border-radius: var(--radius-sm);
   font-weight: 700;
@@ -546,7 +546,7 @@ async function ejecutarConfirmacion() {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  background-color: #ffffff;
+  background-color: var(--bg-card);
 }
 
 .actions-dock-right {

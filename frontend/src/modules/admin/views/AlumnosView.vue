@@ -366,7 +366,7 @@ onMounted(() => {
 }
 
 .modal-box {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: var(--radius-md);
   width: 100%;
   max-width: 520px;
@@ -429,7 +429,7 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+  background: var(--accent);
   color: #ffffff;
   font-weight: 800;
   font-size: 1.1rem;

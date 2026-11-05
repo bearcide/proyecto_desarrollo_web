@@ -132,6 +132,7 @@
           >
             Cerrar sesión
           </button>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -147,6 +148,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationStore } from '../stores/notification';
+import ThemeToggle from '../components/ThemeToggle.vue';
 
 const authStore = useAuthStore();
 const notifStore = useNotificationStore();
@@ -196,7 +198,7 @@ function cerrarSesion() {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -218,7 +220,7 @@ function cerrarSesion() {
 .brand-env {
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--primary-border);
+  color: #c7d2fe;
   text-transform: uppercase;
 }
 
@@ -232,7 +234,7 @@ function cerrarSesion() {
 .school-info-label {
   font-size: 0.65rem;
   text-transform: uppercase;
-  color: var(--text-light);
+  color: #94a3b8;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -281,9 +283,9 @@ function cerrarSesion() {
 }
 
 .nav-item.router-link-active {
-  background: linear-gradient(90deg, rgba(79, 70, 229, 0.3) 0%, rgba(124, 58, 237, 0.15) 100%);
+  background: rgba(79, 70, 229, 0.25);
   color: #ffffff;
-  border-left: 3px solid var(--primary);
+  border-left: 3px solid #818cf8;
 }
 
 .nav-icon {
@@ -311,7 +313,7 @@ function cerrarSesion() {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+  background: var(--accent);
   color: #ffffff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -338,7 +340,7 @@ function cerrarSesion() {
 
 .user-role {
   font-size: 0.7rem;
-  color: var(--text-light);
+  color: #94a3b8;
 }
 
 .logout-btn {
@@ -361,8 +363,10 @@ function cerrarSesion() {
 }
 
 .admin-topbar {
-  height: 60px;
-  background-color: #ffffff;
+  height: 64px;
+  background-color: var(--bar-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
