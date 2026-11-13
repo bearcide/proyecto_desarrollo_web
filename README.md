@@ -1,73 +1,87 @@
 # InscripcionMadeEasy
 
-Proyecto académico para apoyar la inscripción escolar y la asignación de materias por institución. Busca reducir la incertidumbre, los conflictos de horario y la carga administrativa mediante un catálogo académico, reglas de prerrequisitos y propuestas de asignación verificables.
+InscripcionMadeEasy es un sistema multi-tenant para gestionar inscripciones académicas en instituciones educativas. El MVP funcional publicado en `main` organiza solicitudes y genera propuestas de asignación de materias y horarios conforme a prioridades, preferencias y reglas institucionales.
 
-El repositorio contiene un MVP local con API Django REST Framework y una interfaz Vue 3. Su demostración usa datos ficticios; no constituye una validación de operación en producción.
+El MVP incluye autenticación, gestión institucional, catálogos, importación CSV, asignación, publicación de resultados y consulta de horarios. Utiliza Django REST Framework, Vue 3 y el ORM Django, con SQLite para demostración local y PostgreSQL configurable.
 
-## Integrantes del equipo
+Desarrollado en la Facultad de Ingeniería de la UNAM, el proyecto evoluciona hacia un SaaS B2B con contratación, pagos y licencias para instituciones. Esos módulos comerciales existen únicamente en V2 local; todavía están en integración y no forman parte de `main`.
 
-Integrantes oficiales confirmados por el equipo:
+## Problema que resuelve
 
-| Integrante | Matrícula |
+La inscripción exige coordinar cupos, prerrequisitos, materias acreditadas, preferencias y cruces de horario. Resolver estas restricciones de forma manual aumenta la carga administrativa y dificulta explicar por qué una solicitud quedó pendiente. InscripcionMadeEasy centraliza la información y conserva la política aplicada y el resultado de cada propuesta para su revisión antes de publicarla.
+
+## Funcionamiento
+
+1. El usuario se autentica con matrícula y contraseña. Su membresía determina la institución y los permisos disponibles.
+2. La administración prepara planes, materias, prerrequisitos y alumnos; importa la oferta de grupos y las solicitudes mediante CSV.
+3. La importación se valida antes de confirmar sus cambios en una transacción.
+4. El motor procesa solicitudes por prioridad institucional y preferencias, y verifica plan, acreditaciones, prerrequisitos, cupo y conflictos del alumno.
+5. La administración revisa la propuesta, sus motivos de rechazo y su exportación CSV; después publica la ejecución seleccionada.
+6. Cada alumno consulta su horario publicado. La preselección de materias en el simulador es una ayuda de consulta, no una inscripción persistida.
+
+## Módulos implementados en main
+
+| Módulo | Alcance |
 |---|---|
-| Cristian Michael Aguilar Chávez | 318039026 |
-| Cecilia Sayuri Hernández Martínez | 320313503 |
-| Emilio García Riba | **PENDIENTE: completar** |
-| Violeta Camacho Ignacio | **PENDIENTE: completar** |
+| Identidad y acceso | JWT, renovación de tokens, membresías, roles escolares y selección de institución mediante `X-Tenant-ID` |
+| Gestión institucional | Instituciones y aislamiento de consultas y operaciones por membresía |
+| Administración académica | Alumnos, planes de estudio, materias, prerrequisitos y estadísticas |
+| Importación | CSV de planes, materias, alumnos, grupos y solicitudes; validación y confirmación transaccional |
+| Motor de asignación | Algoritmo greedy determinista, política registrada y resultados con información de la decisión |
+| Resultados y horarios | Revisión, publicación, exportación CSV y consulta del horario propio |
 
-**Datos académicos pendientes:** institución, asignatura, grupo, profesor y periodo. El ADR original conserva los nombres y roles tal como se registraron históricamente; esta lista oficial actualiza la identificación del equipo sin alterar ese antecedente.
+El motor produce una propuesta completa por institución y mantiene una ejecución publicada. No garantiza un óptimo global ni modela periodos académicos o disponibilidad de aulas y profesores. La demostración SQLite está diseñada para operación local secuencial.
 
-## Alcance implementado
+## Arquitectura técnica
 
-- Autenticación JWT por matrícula y contraseña, renovación de tokens y selección de institución mediante membresías y `X-Tenant-ID`.
-- API de instituciones, alumnos, planes, materias (nodos), prerrequisitos y estadísticas, con permisos y aislamiento por institución.
-- Interfaz con áreas de administración y alumno, catálogo curricular y simulador de preselección. La simulación del alumno no equivale a una inscripción persistida.
-- Demostración académica: validación y confirmación de CSV, consulta de grupos y estadísticas, generación de propuestas, publicación, resultados y exportación CSV.
-- Motor de asignación greedy determinista: prioridad institucional, matrícula y preferencias; verifica plan, materias aprobadas, prerrequisitos, cupos y cruces del alumno. Conserva política y resultados para auditoría.
-- Consulta del horario propio publicado y documentación OpenAPI.
+Vue 3 implementa la interfaz; Vue Router organiza la navegación, Pinia el estado y Axios las peticiones. Django REST Framework expone la API JSON en `/api/v1/`, aplica autenticación y permisos, y delega reglas a servicios de negocio. Los modelos y el ORM Django gestionan la persistencia.
 
-El motor no garantiza un óptimo global. La demo mantiene una propuesta publicada por escuela, sin periodos académicos ni control de ocupación de profesores y aulas. SQLite se usa para la demo local secuencial.
+```mermaid
+flowchart LR
+    U[Usuario] --> V[Vue 3 · Router · Pinia]
+    V -->|REST JSON · JWT| A[Django REST Framework]
+    A --> I[Identidad y membresías]
+    A --> S[Servicios académicos]
+    I --> O[Modelos · ORM Django]
+    S --> O
+    O --> D[(SQLite local / PostgreSQL configurable)]
+```
 
-### Propuestas futuras y alcance pendiente
+Este esquema representa la arquitectura publicada. El [diagrama de secuencia de la API](docs/diagramas/diagrama_flujo_api_equipo.pdf) describe las interacciones académicas. La evolución desde Django Templates + Bootstrap se explica en el [ADR 002](docs/adr/002-evolucion-observada.md).
 
-Gestión de periodos, conflictos de aulas/profesores, optimización global y pruebas de carga para operación concurrente son ampliaciones pendientes. La integración institucional, el despliegue productivo y los pagos no se presentan aquí como funcionalidades verificadas de esta rama. El ADR inicial contiene objetivos de producto que deben distinguirse del alcance actual.
+SQLite permite ejecutar la demo sin un servidor de base de datos. PostgreSQL está contemplado mediante el driver, `DATABASE_URL` y Docker Compose; su comportamiento concurrente requiere validación específica antes de producción.
 
-## Arquitectura
+## Modelo SaaS y fase comercial
 
-El navegador ejecuta una SPA Vue 3 con Vue Router, Pinia y Axios, servida en desarrollo por Vite. Consume JSON en `/api/v1/`; Axios adjunta JWT y el selector de institución. Django REST Framework expone vistas y serializadores; los servicios concentran reglas de identidad, importación, prerrequisitos y asignación. Los modelos Django persisten los datos mediante el ORM.
+El modelo B2B consiste en vender acceso al software a instituciones educativas. La capa comercial administra esa relación; no registra colegiaturas ni otros pagos escolares de alumnos.
 
-La configuración general usa `DATABASE_URL` y, si falta, SQLite. PostgreSQL está contemplado por el driver y Docker Compose. La configuración `config.settings_demo` selecciona exclusivamente una SQLite local `backend/demo_*.sqlite3`.
+- **En main:** MVP académico y herramientas de demostración y pruebas.
+- **En V2 local (`feature/fase2-ia`):** API de planes, precios, contratos, órdenes, suscripciones, licencias y comprobantes; checkout idempotente, permisos académicos por licencia y paneles Vue de institución y propietario.
+- **Pendiente:** completar operaciones administrativas y alinear la experiencia de contratación con los estados y precios del servidor. Algunas pantallas conservan simulaciones ante errores de red.
 
-El [registro de arquitectura](docs/adr/README.md) conserva el ADR inicial de Django Templates + Bootstrap y explica por separado la evolución observada a DRF + Vue 3. Las plantillas y configuración Django dentro de `frontend/` son remanentes de una interfaz anterior; la guía siguiente ejecuta Vue mediante Vite.
+V2 permite una demostración sin pasarela bancaria y dispone de un adaptador Stripe limitado al modo de pruebas. Sus pruebas automatizadas usan mocks; aún falta validar el recorrido completo contra Stripe sandbox. Los comprobantes son internos, sin validez fiscal.
 
-## Organización del repositorio
+Las modalidades de cobro, evidencia, endpoints y límites de integración se detallan en [Estado de implementación](docs/ESTADO_IMPLEMENTACION.md).
 
-| Ruta | Contenido |
-|---|---|
-| `backend/config/` | Configuración Django, rutas y configuración de demo |
-| `backend/apps/core/api/` | Vistas REST, serializadores, permisos y errores |
-| `backend/apps/core/models/` | Modelos académicos, membresías y asignaciones |
-| `backend/apps/core/services/` | Reglas de negocio e importación |
-| `backend/apps/core/repositories/` | Acceso especializado a prerrequisitos |
-| `backend/apps/core/tests/` | Pruebas Python |
-| `frontend/src/` | SPA Vue, módulos, componentes, stores y cliente API |
-| `frontend/documentacion/` | ADR original |
-| `demo_data/` | CSV ficticios para demostración |
-| `scripts/demo/` | Validación de CSV y pruebas HTTP |
-| `docs/` y `backend/docs/` | Contrato de API, QA y documentación técnica |
+## Estructura del proyecto
 
-## Requisitos
+```text
+backend/
+  config/                   Configuración Django y rutas
+  apps/core/                API, modelos, servicios y pruebas académicas
+frontend/
+  src/                      SPA, módulos, componentes y estado
+  documentacion/            ADR inicial
+demo_data/                  CSV académicos ficticios
+scripts/demo/               Validación de datos e integración HTTP
+docs/                       Arquitectura, estado y diagramas
+```
 
-- Python 3.10 o superior, `pip` y soporte para `venv`, según [requirements.txt](backend/requirements.txt).
-- Node.js 18 o superior y npm para Vite 5; para reproducibilidad, usar el [package-lock.json](frontend/package-lock.json) con `npm ci`.
-- Dos terminales y puertos locales 8000 (API) y 5173 (interfaz).
-- PostgreSQL es opcional para la configuración general; no se requiere para la demo SQLite.
+En V2 local se agregan `backend/apps/comercial/` y `frontend/src/modules/comercial/`, con áreas de cliente institucional y propietario. La configuración Django y las plantillas conservadas dentro de `frontend/` pertenecen a la interfaz anterior; el cliente activo se ejecuta con Vite.
 
-## Instalación y ejecución local
+## Instalación y demostración académica
 
-Comandos para Bash en Linux/macOS, desde la raíz del repositorio. En Windows deben adaptarse la activación del entorno y las variables de entorno.
-
-### 1. Instalar dependencias
+Requisitos: Python 3.10 o superior con `venv` y `pip`, Node.js 20 compatible con las dependencias actuales y npm. Comandos para Bash, desde la raíz de un checkout de `main`:
 
 ```bash
 python3 -m venv .venv
@@ -78,70 +92,58 @@ npm ci
 cd ..
 ```
 
-### 2. Inicializar la demo (una sola vez)
+Crear la base demo una sola vez; el inicializador aplica migraciones e importa datos ficticios:
 
 ```bash
-source .venv/bin/activate
 python -B backend/manage.py inicializar_demo --settings=config.settings_demo --con-datos
-```
-
-El comando crea una base **nueva** `backend/demo_backend_20261105.sqlite3`, aplica migraciones e importa 100 alumnos ficticios, 2 planes, 12 materias, 24 grupos y 400 solicitudes. Rechaza una base existente: si ya fue inicializada, omitir este paso y arrancar el servidor. No borrar una base para repetirlo. Para otra demo se puede definir `IME_DEMO_DATABASE` con otra ruta absoluta, nueva, dentro de `backend/`, cuyo nombre cumpla `demo_*.sqlite3`; usar la misma variable al inicializar y ejecutar.
-
-### 3. Iniciar la API
-
-```bash
-source .venv/bin/activate
 python -B backend/manage.py runserver 127.0.0.1:8000 --settings=config.settings_demo --noreload
 ```
 
-### 4. Iniciar Vue en otra terminal
+Si `backend/demo_backend_20261105.sqlite3` ya existe, omitir la inicialización. El comando rechaza archivos existentes. Para una demo adicional, definir `IME_DEMO_DATABASE` con una ruta nueva dentro de `backend/`, de nombre `demo_*.sqlite3`, y conservar esa variable al arrancar el servidor. Las credenciales ficticias se consultan en la salida del inicializador; no se publican contraseñas aquí.
+
+En otra terminal:
 
 ```bash
 cd frontend
 npm run dev -- --host 127.0.0.1
 ```
 
-Abrir `http://127.0.0.1:5173`. El cliente usa por defecto `http://127.0.0.1:8000/api/v1`; para cambiarlo, definir `VITE_API_BASE_URL` antes de iniciar Vite. La API debe permitir el origen mediante CORS.
+Abrir `http://127.0.0.1:5173`. El cliente apunta a `http://127.0.0.1:8000/api/v1`; puede cambiarse mediante `VITE_API_BASE_URL`. La API debe permitir el origen por CORS. Generar y publicar una propuesta como administrador antes de consultar el horario del alumno.
 
-Usar las credenciales ficticias que informa el inicializador local para acceder como administrador o alumno de demostración. Seleccionar la escuela demo si la interfaz solicita institución. Generar y publicar una propuesta desde administración antes de consultar el horario del alumno; el inicializador no publica resultados.
+Swagger está disponible en `http://127.0.0.1:8000/docs/` y el esquema en `/api/v1/schema/`. La configuración general usa `DATABASE_URL`; los campos `POSTGRES_*` de [backend/.env.example](backend/.env.example) no seleccionan por sí solos la base de Django. El Compose de la raíz solo inicia PostgreSQL.
 
-Documentación local de API: `http://127.0.0.1:8000/docs/` y esquema `http://127.0.0.1:8000/api/v1/schema/`. Los recursos protegidos requieren autenticación y membresía válida.
+### Demostración comercial de V2
 
-### Configuración general (alternativa a la demo)
+Requiere el código local comercial y sus dependencias; no se obtiene al ejecutar los comandos anteriores en `main`. V2 dispone de `backend/demo_pagos.py` para crear una base nueva y de `config.settings_pagos_demo` para ejecutarla con proveedor DEMO. La [guía de estado](docs/ESTADO_IMPLEMENTACION.md#demostración-comercial-local) recoge los comandos verificados por inspección y separa esta demo de la configuración Stripe sandbox.
 
-[backend/.env.example](backend/.env.example) enumera variables de seguridad y CORS. `backend/config/settings.py` selecciona la base mediante **`DATABASE_URL`**; los campos `POSTGRES_*` del ejemplo no la seleccionan por sí solos. Para PostgreSQL, configurar una URL `postgres://usuario:contraseña@host:5432/base`, aprovisionar la base y ejecutar `python backend/manage.py migrate`. El Compose de la raíz solo levanta PostgreSQL y requiere sus variables `POSTGRES_*`; no ejecuta Django ni Vue. Esta ruta requiere crear usuarios y membresías; consultar [identidad multi-tenant](backend/docs/identidad_multi_tenant.md). No usar las credenciales ni la clave fija de la demo en producción.
+## Pruebas y validación
 
-## Pruebas disponibles
-
-Desde la raíz, con las dependencias instaladas:
+Las suites del backend usan SQLite en memoria. Las pruebas Vue usan Vitest. Desde la raíz, con las dependencias instaladas:
 
 ```bash
-source .venv/bin/activate
 python -B backend/pruebas_aisladas.py
 python3 scripts/demo/validate_demo_csv.py
 cd frontend
 npm test
 npm run build
-cd ..
 ```
 
-La suite aislada comprueba modelos, identidad, permisos, grafos y el flujo de asignación/importación usando SQLite en memoria; bloquea conexiones SQLite a disco. Vitest prueba las reglas de `ValidadorInscripcion`. El build comprueba la compilación de Vue.
+Las suites académicas y comerciales ejecutadas en copias temporales aprobaron. Los [resultados y su alcance](docs/ESTADO_IMPLEMENTACION.md#validación-y-preparación-productiva) distinguen main de V2 y las pruebas simuladas de las validaciones externas pendientes. No se midió cobertura ni se ejecutó el build durante esta revisión.
 
-La integración HTTP necesita el servidor y una base demo dedicada inicializada; importa datos, genera y publica propuestas, por lo que modifica esa demo:
+La integración HTTP académica está en `scripts/demo/integration_demo.py`; importa, genera y publica resultados, por lo que requiere una base demo dedicada. No se ejecutó como parte de esta revisión.
 
-```bash
-python3 scripts/demo/integration_demo.py --base-url http://127.0.0.1:8000/api/v1
-```
+## Documentación
 
-[QA de la demo](docs/QA_DEMO.md) y [verificación previa del backend](backend/docs/DEMO_VERIFICACION.md) contienen resultados históricos, no una ejecución nueva. Hay referencias históricas a `backend/venv` y una errata `pruebas_aisoladas.py`; el archivo vigente es `backend/pruebas_aisladas.py`. El workflow de la raíz ejecuta npm sin cambiar a `frontend/`, donde está `package.json`; no se debe asumir que valida toda la aplicación.
+- [ADR 001 — Stack y arquitectura inicial](frontend/documentacion/001-stack-y-arquitectura.md).
+- [ADR 002 — Evolución a API REST y Vue](docs/adr/002-evolucion-observada.md).
+- [Estado de implementación y fase comercial](docs/ESTADO_IMPLEMENTACION.md).
+- [Diagrama principal de secuencia](docs/diagramas/diagrama_flujo_api_equipo.pdf) y [original](docs/diagramas/diagrama_flujo_api_original.pdf).
+- [Contrato de API académica](docs/DEMO_API_CONTRACT.md).
+- [Identidad multi-tenant](backend/docs/identidad_multi_tenant.md).
 
-## Documentación para la entrega
+## Integrantes
 
-- [Diagnóstico y verificación documental](docs/DIAGNOSTICO_DOCUMENTACION.md).
-- [Índice de decisiones de arquitectura](docs/adr/README.md).
-- [ADR original, conservado sin cambios](frontend/documentacion/001-stack-y-arquitectura.md).
-- [Evolución observada de la arquitectura](docs/adr/002-evolucion-observada.md).
-- [Diagrama con proyecto e integrantes](docs/diagramas/diagrama_flujo_api_equipo.pdf).
-- [Copia del diagrama original](docs/diagramas/diagrama_flujo_api_original.pdf).
-- [Registro de incorporación del equipo al diagrama](docs/PROPUESTA_DIAGRAMA.md).
-- [Contrato de la API de demostración](docs/DEMO_API_CONTRACT.md).
+- Cristian Michael Aguilar Chávez.
+- Cecilia Sayuri Hernández Martínez.
+- Emilio García Riba.
+- Violeta Camacho Ignacio.
