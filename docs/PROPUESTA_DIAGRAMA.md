@@ -1,26 +1,12 @@
-# Diagrama de flujo de la API — identificación del equipo
+# Registro del diagrama de secuencia
 
-## Fuente y conservación
+Registro de preparación de la entrega; el diagrama principal se enlaza directamente desde el README.
 
-El equipo proporcionó el original en `/home/crismi/Escritorio/proyecto_CeciyEmilio/proyecto_desarrollo_web_v2/scripts/diagrama_flujo_api.pdf`. Se leyó exclusivamente ese archivo y se creó una [copia íntegra](diagramas/diagrama_flujo_api_original.pdf) en el worktree documental. No se modificó el repositorio V2.
+- [Versión del equipo](diagramas/diagrama_flujo_api_equipo.pdf): flujo académico con nombre del proyecto y cuatro integrantes.
+- [Copia del original](diagramas/diagrama_flujo_api_original.pdf): antecedente conservado íntegro.
 
-## Versión para entregar
+La fuente fue `scripts/diagrama_flujo_api.pdf` del worktree V2. La versión del equipo amplió el lienzo de 900 × 1010 a 900 × 1180 puntos para añadir una cartela inferior, sin alterar el dibujo. La comprobación anterior comparó la región técnica a 72 dpi y obtuvo una imagen idéntica; la revisión editorial actual conserva ambos PDF byte a byte respecto de `origin/main`.
 
-[Diagrama con integrantes y nombre del proyecto](diagramas/diagrama_flujo_api_equipo.pdf).
+El documento es un diagrama de secuencia de la API académica, no un diagrama de componentes ni del checkout comercial. El esquema Mermaid del README describe la arquitectura publicada. Una futura representación comercial deberá documentar por separado sus actores y eventos cuando se valide la integración.
 
-La versión identificada amplía el lienzo de 900 × 1010 a 900 × 1180 puntos y añade una cartela inferior. El dibujo conserva sus elementos, texto, conexiones, colores y tamaño; no se revisaron ni cambiaron sus decisiones técnicas. El PDF original sigue disponible como antecedente.
-
-## Integrantes oficiales de InscripcionMadeEasy
-
-| Integrante | Matrícula |
-|---|---|
-| Cristian Michael Aguilar Chávez | 318039026 |
-| Cecilia Sayuri Hernández Martínez | 320313503 |
-| Emilio García Riba | PENDIENTE |
-| Violeta Camacho Ignacio | PENDIENTE |
-
-Los nombres y las dos matrículas disponibles fueron proporcionados por el equipo. No se atribuyen responsabilidades técnicas. El ADR histórico permanece intacto aunque su lista de autores sea anterior a esta confirmación.
-
-## Validación
-
-Se comprueban integridad byte a byte de la copia original, lectura del texto de los cuatro integrantes y conservación visual de la región técnica mediante comparación de rasterizados. Las matrículas de Emilio García Riba y Violeta Camacho Ignacio siguen pendientes.
+Los datos oficiales del equipo se mantienen en la sección Integrantes del README. Las matrículas de Emilio y Violeta permanecen pendientes.
