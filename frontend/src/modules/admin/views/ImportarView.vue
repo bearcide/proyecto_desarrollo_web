@@ -121,7 +121,7 @@
 
         <div class="csv-meta-info">
           <span>Líneas: {{ contarLineas(archivos[tabActivo]) }}</span>
-          <span>Tamaño: {{ (new Blob([archivos[tabActivo]]).size / 1024).toFixed(1) }} KB</span>
+          <span>Tamaño: {{ tamanoKB(archivos[tabActivo]) }} KB</span>
         </div>
       </div>
     </div>
@@ -241,6 +241,16 @@ const totalArchivosConContenido = computed(() => {
 function contarLineas(texto) {
   if (!texto || !texto.trim()) return 0;
   return texto.trim().split('\n').length;
+}
+
+/**
+ * Calcula el tamaño legible (en KB) de un texto sin depender de APIs globales
+ * como `Blob` dentro del render function, evitando que un fallo de render
+ * deje la pantalla en blanco (pantalla negra).
+ */
+function tamanoKB(texto) {
+  const valor = typeof texto === 'string' ? texto : '';
+  return (valor.length / 1024).toFixed(1);
 }
 
 function handleFileUpload(event, clave) {
@@ -432,7 +442,7 @@ async function ejecutarConfirmacion() {
 
 .chip-count {
   display: inline-block;
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--fill-track);
   padding: 0.1rem 0.5rem;
   border-radius: var(--radius-sm);
   font-weight: 700;
@@ -546,7 +556,7 @@ async function ejecutarConfirmacion() {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  background-color: #ffffff;
+  background-color: var(--bg-card);
 }
 
 .actions-dock-right {

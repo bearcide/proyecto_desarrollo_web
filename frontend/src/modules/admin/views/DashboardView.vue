@@ -266,12 +266,12 @@ onMounted(cargarEstadisticas);
 }
 
 .pub-active {
-  background: linear-gradient(90deg, #f0fdf4 0%, #ecfdf5 100%);
+  background: var(--success-bg);
   border-left: 4px solid var(--success);
 }
 
 .pub-pending {
-  background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%);
+  background: var(--warning-bg);
   border-left: 4px solid var(--warning);
 }
 

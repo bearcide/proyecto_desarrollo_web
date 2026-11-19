@@ -22,6 +22,8 @@ def serializar_resultado(row):
 @transaction.atomic
 def generar(tenant):
     Tenant.objects.select_for_update().get(pk=tenant.pk)
+    from apps.comercial.academic import exigir_modulo
+    exigir_modulo(tenant, 'asignaciones', alumnos=Alumno.objects.filter(tenant=tenant).count())
     requests=list(SolicitudMateria.objects.filter(tenant=tenant,alumno__activo=True).select_related('alumno','nodo','alumno__plan_estudios').prefetch_related('nodo__prerrequisitos'))
     por_alumno=defaultdict(list)
     for req in requests:
@@ -84,6 +86,8 @@ def generar(tenant):
 @transaction.atomic
 def publicar(run):
     Tenant.objects.select_for_update().get(pk=run.tenant_id)
+    from apps.comercial.academic import exigir_modulo
+    exigir_modulo(run.tenant, 'asignaciones', alumnos=Alumno.objects.filter(tenant=run.tenant).count())
     run=EjecucionAsignacion.objects.select_for_update().get(pk=run.pk)
     if run.estado=='ARCHIVADO': raise ReglaDeNegocioError('Una ejecución archivada no se vuelve a publicar; genera una nueva.')
     EjecucionAsignacion.objects.filter(tenant_id=run.tenant_id,estado='PUBLICADO').exclude(pk=run.pk).update(estado='ARCHIVADO')

@@ -131,6 +131,12 @@ def importar(tenant, archivos, confirmar=False):
         # Bloqueo común con generación/publicación. SQLite serializa escrituras.
         from apps.core.models import Tenant
         Tenant.objects.select_for_update().get(pk=tenant.pk)
+        from apps.comercial.academic import exigir_modulo, exigir_alumnos
+        exigir_modulo(tenant, 'importaciones')
+        for name, module in [('planes', 'planes_estudios'), ('materias', 'planes_estudios'),
+                             ('alumnos', 'alumnos'), ('grupos', 'horarios'), ('solicitudes', 'asignaciones')]:
+            if parsed.get(name):
+                exigir_modulo(tenant, module)
         def plan(row):
             PlanEstudios.objects.update_or_create(tenant=tenant,nombre=texto(row,'nombre'),defaults={'descripcion':texto(row,'descripcion',10000,False)})
         for number,row in parsed.get('planes',[]):
@@ -159,6 +165,8 @@ def importar(tenant, archivos, confirmar=False):
             approved=claves(row['aprobadas'],tenant,'aprobadas')
             if any(n.plan_estudios_id!=p.pk for n in approved): raise ErrorFila('aprobadas','Materia de otro plan.')
             a=Alumno.objects.filter(tenant=tenant,numero_de_cuenta=account).first()
+            if a is None:
+                exigir_alumnos(tenant, adicionales=1)
             U=get_user_model(); user=U.objects.filter(username=account).first()
             if user and (not a or a.user_id!=user.pk):
                 raise ErrorFila('matricula','Identificador de usuario existente no asociado a este alumno; requiere revisión explícita.')

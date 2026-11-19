@@ -1,239 +1,164 @@
 <template>
   <div class="alumno-horario-page">
-    <!-- Bienvenida Personalizada -->
-    <div class="welcome-banner card">
-      <div class="welcome-content">
-        <div class="welcome-avatar">
-          {{ avatarIniciales }}
-        </div>
-        <div class="welcome-text">
-          <span class="welcome-saludo">¡Hola, {{ authStore.alumno?.nombre || 'Estudiante' }}!</span>
-          <h1 class="welcome-name">
-            {{ authStore.nombreCompleto }}
-          </h1>
-          <div class="welcome-meta">
-            <span class="meta-item">
-              Matrícula: <strong class="font-mono">{{ authStore.matriculaOId }}</strong>
-            </span>
-            <span class="meta-item">
-              Plan de Estudios: <strong>#{{ authStore.alumno?.plan_estudios || '1' }}</strong>
-            </span>
-            <span class="meta-item">
-              Semestre: <strong>{{ authStore.alumno?.semestre ?? '—' }}</strong>
-            </span>
-          </div>
-        </div>
+    <!-- Encabezado uniforme (A4 / B1) -->
+    <header class="ui-page-header">
+      <div>
+        <h1 class="ui-large-title">Mi horario</h1>
+        <p class="ui-page-subtitle">Tu carga académica y horario semanal del periodo</p>
       </div>
-
-      <div class="welcome-badge-wrap">
+      <div class="ui-page-actions">
         <span
+          v-if="!cargando"
           class="badge badge-lg"
           :class="hayPublicacion ? 'badge-success' : 'badge-warning'"
         >
-          ● {{ hayPublicacion ? 'Horarios Oficiales Publicados' : 'Horarios en Proceso' }}
+          ● {{ hayPublicacion ? 'Horarios oficiales publicados' : 'Horarios en proceso' }}
         </span>
       </div>
-    </div>
+    </header>
 
-    <!-- Error Alert Si Existe -->
-    <div v-if="errorGenerico" class="alert alert-danger" role="alert">
-      {{ errorGenerico }}
-    </div>
+    <ErrorBanner
+      v-if="errorGenerico"
+      titulo="No pudimos cargar tu horario"
+      :mensaje="errorGenerico"
+      :cargando="cargando"
+      @reintentar="consultarHorario"
+    />
 
-    <!-- Estado de Carga -->
-    <div v-if="cargando" class="empty-state">
-      <div class="spinner spinner-primary" style="width: 2rem; height: 2rem; margin: 0 auto 1rem;"></div>
-      <div class="empty-state-title">Consultando tus asignaciones oficiales…</div>
-    </div>
-
-    <!-- Caso 1: Horarios Aún No Publicados (404 del Backend) -->
-    <div v-else-if="!hayPublicacion" class="card empty-publication-card">
-      <div class="empty-pub-icon">
-        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      </div>
-      <h2 class="empty-pub-title">Horarios del periodo en proceso de asignación</h2>
-      <p class="empty-pub-desc">
-        La administración escolar aún no ha publicado los horarios oficiales definitivos para tu carrera.
-        En cuanto la asignación sea confirmada, tus materias y cuadrícula semanal aparecerán automáticamente en esta pantalla.
-      </p>
-
-      <div class="notice-box">
-        <div class="notice-item">
-          <strong>Ventana de consulta:</strong>
-          <span>{{ authStore.alumno?.ventana_texto || 'Pendiente de notificación oficial' }}</span>
+    <!-- Carga: esqueleto con la forma del contenido (A9) -->
+    <div v-if="cargando" class="horario-layout" aria-busy="true" aria-label="Cargando horario">
+      <aside class="horario-col-left">
+        <div class="ui-grouped skel-box">
+          <div v-for="n in 4" :key="n" class="ui-row"><div class="skeleton ui-skel-line" style="width: 100%"></div></div>
         </div>
-        <div class="notice-item">
-          <strong>Materias solicitadas:</strong>
-          <span>Tus solicitudes han sido registradas para el algoritmo determinista.</span>
+      </aside>
+      <div class="horario-col-right">
+        <div class="card skel-box">
+          <div class="card-body">
+            <div class="skeleton ui-skel-title"></div>
+            <div class="skeleton" style="height: 320px"></div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="empty-pub-actions">
-        <router-link to="/alumno/perfil" class="btn btn-secondary">
-          Consultar mi perfil académico
-        </router-link>
-        <button
-          type="button"
-          class="btn btn-outline"
-          @click="consultarHorario"
-        >
-          Reintentar consulta
+    <!-- Sin publicación todavía (B7) -->
+    <div v-else-if="!hayPublicacion && !errorGenerico" class="card">
+      <div class="ui-empty">
+        <div class="ui-empty-icon empty-warning"><AppIcon name="clock" :size="26" /></div>
+        <h2 class="ui-empty-title">Tus horarios aún no se publican</h2>
+        <p class="ui-empty-text">
+          En cuanto la escuela publique la asignación oficial, verás aquí tus materias y tu horario semanal.
+        </p>
+        <button type="button" class="btn btn-primary" @click="consultarHorario">
+          <AppIcon name="refresh" :size="16" />
+          Volver a consultar
         </button>
       </div>
     </div>
 
-    <!-- Caso 2: Horarios Publicados Exitosamente -->
-    <div v-else class="schedule-content-wrap">
-      <!-- KPIs de la Carga Asignada -->
-      <div class="stats-grid">
-        <div class="stat-card stat-success">
-          <div class="stat-header">
-            <span class="stat-label">Materias Asignadas</span>
-            <div class="stat-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    <!-- Horarios publicados -->
+    <div v-else-if="hayPublicacion" class="horario-layout">
+      <!-- Columna izquierda: resumen compacto (A4 / B2) -->
+      <aside class="horario-col-left">
+        <h2 class="ui-section-title">Resumen</h2>
+        <div class="ui-grouped resumen-list">
+          <div class="ui-row">
+            <span class="ui-row-icon tint-success"><AppIcon name="check" :size="16" /></span>
+            <span class="ui-row-label">Materias asignadas</span>
+            <span class="ui-row-value">{{ materiasAsignadas.length }}</span>
+          </div>
+          <div class="ui-row">
+            <span class="ui-row-icon tint-blue"><AppIcon name="credits" :size="16" /></span>
+            <span class="ui-row-label">Total de créditos</span>
+            <span class="ui-row-value">{{ totalCreditosAsignados }}</span>
+          </div>
+          <div v-if="materiasPendientes.length > 0" class="ui-row">
+            <span class="ui-row-icon tint-warning"><AppIcon name="warning" :size="16" /></span>
+            <span class="ui-row-label">No asignadas</span>
+            <span class="ui-row-value">{{ materiasPendientes.length }}</span>
+          </div>
+          <div class="ui-row">
+            <span class="ui-row-icon tint-indigo"><AppIcon name="shield" :size="16" /></span>
+            <div class="ui-row-main">
+              <div class="ui-row-label">Estatus de inscripción</div>
+              <div class="ui-row-subtitle">Ejecución institucional #{{ ejecucionId }}</div>
             </div>
+            <span class="ui-row-value status-value">Oficial</span>
           </div>
-          <div class="stat-value text-success">{{ materiasAsignadas.length }}</div>
-          <div class="stat-subtext">Carga académica oficial confirmada</div>
         </div>
+      </aside>
 
-        <div class="stat-card stat-blue">
-          <div class="stat-header">
-            <span class="stat-label">Total de Créditos</span>
-            <div class="stat-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            </div>
+      <!-- Columna derecha: horario y detalle -->
+      <div class="horario-col-right">
+        <section class="card schedule-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <AppIcon name="calendar" />
+              Horario semanal
+            </h2>
           </div>
-          <div class="stat-value text-blue">{{ totalCreditosAsignados }}</div>
-          <div class="stat-subtext">Créditos curriculares en curso</div>
-        </div>
+          <div class="card-body">
+            <HorarioGrid :items="materiasAsignadas" />
+          </div>
+        </section>
 
-        <div class="stat-card stat-warning" v-if="materiasPendientes.length > 0">
-          <div class="stat-header">
-            <span class="stat-label">Solicitudes No Asignadas</span>
-            <div class="stat-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            </div>
-          </div>
-          <div class="stat-value text-warning">{{ materiasPendientes.length }}</div>
-          <div class="stat-subtext">Por cupo o conflicto de horario</div>
-        </div>
-
-        <div class="stat-card stat-card-indigo">
-          <div class="stat-header">
-            <span class="stat-label">Estatus de Inscripción</span>
-            <div class="stat-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            </div>
-          </div>
-          <div class="stat-value" style="font-size: 1.35rem; color: var(--primary);">
-            OFICIAL
-          </div>
-          <div class="stat-subtext">Ejecución institucional #{{ ejecucionId }}</div>
-        </div>
-      </div>
-
-      <!-- Cuadrícula Semanal Visual Reutilizable -->
-      <div class="card visual-schedule-card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Horario Semanal
+        <!-- Detalle como lista agrupada (B5) -->
+        <section>
+          <h2 class="ui-section-title">
+            Materias asignadas
+            <span class="ui-section-count">{{ materiasAsignadas.length }}</span>
           </h2>
-          <span class="badge badge-success">
-            {{ materiasAsignadas.length }} asignaturas con aula y horario
-          </span>
-        </div>
-
-        <div class="card-body">
-          <HorarioGrid :items="materiasAsignadas" />
-        </div>
-      </div>
-
-      <!-- Detalle de Materias Asignadas -->
-      <div class="card detailed-subjects-card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
-            Detalle de Materias Asignadas
-          </h2>
-        </div>
-
-        <div class="card-body">
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Clave</th>
-                  <th>Materia</th>
-                  <th>Grupo</th>
-                  <th>Profesor</th>
-                  <th>Horario Asignado</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, idx) in materiasAsignadas" :key="idx">
-                  <td class="font-mono font-bold">{{ item.clave_materia }}</td>
-                  <td>
-                    <strong>{{ item.detalle?.nombre_materia || item.clave_materia }}</strong>
-                  </td>
-                  <td>
-                    <span class="badge badge-indigo">
-                      {{ item.detalle?.grupo || item.grupo || 'G1' }}
-                    </span>
-                  </td>
-                  <td>{{ item.detalle?.profesor || 'Por asignar' }}</td>
-                  <td>
-                    <span class="font-mono text-sm">
-                      {{ formatearHorarios(item.detalle?.horarios) }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge badge-success">ASIGNADA</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div v-if="materiasAsignadas.length" class="ui-grouped">
+            <div
+              v-for="(item, idx) in materiasAsignadas"
+              :key="item.clave_materia + idx"
+              class="ui-row materia-row"
+            >
+              <span class="color-dot" :class="`dot-${colorDe(item) % 6}`" aria-hidden="true"></span>
+              <div class="ui-row-main">
+                <div class="ui-row-title">{{ item.detalle?.nombre_materia || item.clave_materia }}</div>
+                <div class="ui-row-subtitle">
+                  <span class="ui-code">{{ item.clave_materia }}</span>
+                  · Grupo {{ item.detalle?.grupo || item.grupo || 'G1' }}
+                  · {{ item.detalle?.profesor || 'Profesor por asignar' }}
+                </div>
+              </div>
+              <div class="materia-horario ui-num">{{ formatearHorarios(item.detalle?.horarios) }}</div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Detalle de Solicitudes Pendientes (Si hay alguna) -->
-      <div v-if="materiasPendientes.length > 0" class="card pending-subjects-card">
-        <div class="card-header">
-          <h2 class="card-title text-warning">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Solicitudes no asignadas en este ciclo ({{ materiasPendientes.length }})
-          </h2>
-        </div>
-
-        <div class="card-body">
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Clave</th>
-                  <th>Materia</th>
-                  <th>Estado</th>
-                  <th>Motivo Institucional</th>
-                  <th>Explicación</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, idx) in materiasPendientes" :key="idx">
-                  <td class="font-mono font-bold">{{ item.clave_materia }}</td>
-                  <td>{{ item.detalle?.nombre_materia || item.clave_materia }}</td>
-                  <td><span class="badge badge-warning">PENDIENTE</span></td>
-                  <td><span class="badge badge-danger text-xs">{{ item.motivo }}</span></td>
-                  <td class="text-sm text-muted">
-                    {{ item.detalle?.explicacion || 'No fue posible asignar cupo en las opciones solicitadas.' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div v-else class="ui-grouped">
+            <div class="ui-empty">
+              <p class="ui-empty-text">No tienes materias asignadas en esta publicación.</p>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <!-- Solicitudes no asignadas: icono + texto, no solo color (B6) -->
+        <section v-if="materiasPendientes.length > 0">
+          <h2 class="ui-section-title">
+            Solicitudes no asignadas
+            <span class="ui-section-count">{{ materiasPendientes.length }}</span>
+          </h2>
+          <div class="ui-grouped">
+            <div
+              v-for="(item, idx) in materiasPendientes"
+              :key="item.clave_materia + idx"
+              class="ui-row pendiente-row"
+            >
+              <span class="ui-row-icon tint-warning"><AppIcon name="warning" :size="16" /></span>
+              <div class="ui-row-main">
+                <div class="ui-row-title">{{ item.detalle?.nombre_materia || item.clave_materia }}</div>
+                <div class="ui-row-subtitle">
+                  {{ item.detalle?.explicacion || 'No fue posible asignar cupo en las opciones solicitadas.' }}
+                </div>
+              </div>
+              <span class="motivo-tag">
+                No asignada · {{ textoMotivo(item.motivo) }}
+              </span>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </div>
@@ -242,24 +167,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api, { obtenerMensajeError } from '../../../api';
-import { useAuthStore } from '../../../stores/auth';
 import HorarioGrid from '../../../components/HorarioGrid.vue';
-
-const authStore = useAuthStore();
+import AppIcon from '../../../components/AppIcon.vue';
+import ErrorBanner from '../../../components/ErrorBanner.vue';
 
 const cargando = ref(false);
 const hayPublicacion = ref(false);
 const ejecucionId = ref(null);
 const resultadosPropios = ref([]);
 const errorGenerico = ref(null);
-
-const avatarIniciales = computed(() => {
-  const al = authStore.alumno;
-  if (!al) return 'AL';
-  const n = al.nombre ? al.nombre[0] : '';
-  const p = al.apellido_paterno ? al.apellido_paterno[0] : '';
-  return (n + p).toUpperCase() || 'AL';
-});
 
 const materiasAsignadas = computed(() => {
   return resultadosPropios.value.filter((r) => r.estado === 'ASIGNADA');
@@ -274,6 +190,33 @@ const totalCreditosAsignados = computed(() => {
   return materiasAsignadas.value.length * 6;
 });
 
+// Mismo orden de colores que usa HorarioGrid (por orden de aparición de la clave)
+const indicesColor = computed(() => {
+  const mapa = new Map();
+  materiasAsignadas.value.forEach((item) => {
+    const clave = item.clave_materia || item.detalle?.clave_materia;
+    if (!mapa.has(clave)) mapa.set(clave, mapa.size);
+  });
+  return mapa;
+});
+
+function colorDe(item) {
+  return indicesColor.value.get(item.clave_materia || item.detalle?.clave_materia) ?? 0;
+}
+
+const MOTIVOS = {
+  YA_APROBADA: 'Ya acreditada',
+  PRERREQUISITOS: 'Faltan prerrequisitos',
+  PLAN_INCORRECTO: 'No pertenece a tu plan',
+  SIN_GRUPO: 'Sin grupo disponible',
+  SIN_CUPO: 'Sin cupo',
+  CONFLICTO_HORARIO: 'Cruce de horario',
+};
+
+function textoMotivo(motivo) {
+  return MOTIVOS[motivo] || 'Motivo no especificado';
+}
+
 function minutosAHora(minutos) {
   const h = Math.floor(minutos / 60);
   const m = minutos % 60;
@@ -281,10 +224,10 @@ function minutosAHora(minutos) {
 }
 
 function formatearHorarios(horarios = []) {
-  if (!horarios || !horarios.length) return '—';
+  if (!horarios || !horarios.length) return 'Sin horario';
   return horarios
-    .map((h) => `${h.dia} ${minutosAHora(h.inicio)} - ${minutosAHora(h.fin)}`)
-    .join(', ');
+    .map((h) => `${h.dia} ${minutosAHora(h.inicio)}–${minutosAHora(h.fin)}`)
+    .join(' · ');
 }
 
 async function consultarHorario() {
@@ -318,176 +261,105 @@ onMounted(() => {
 .alumno-horario-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Banner de Bienvenida */
-.welcome-banner {
-  padding: 1.5rem 1.75rem;
-  background: linear-gradient(135deg, #ffffff 0%, var(--primary-light) 100%);
-  border: 1px solid var(--primary-border);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
-}
-
-.welcome-content {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.welcome-avatar {
-  width: 58px;
-  height: 58px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
-  color: #ffffff;
-  font-size: 1.35rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-  flex-shrink: 0;
-}
-
-.welcome-saludo {
-  font-size: 0.8125rem;
-  color: var(--primary);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.welcome-name {
-  font-size: 1.45rem;
-  font-weight: 800;
-  color: var(--text-main);
-  margin: 0.15rem 0 0.35rem;
-}
-
-.welcome-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-  font-size: 0.825rem;
-  color: var(--text-muted);
-}
-
-.meta-item strong {
-  color: var(--text-main);
 }
 
 .badge-lg {
-  padding: 0.45rem 0.95rem;
-  font-size: 0.85rem;
-}
-
-/* Estado sin publicación */
-.empty-publication-card {
-  padding: 3.5rem 2rem;
-  text-align: center;
-}
-
-.empty-pub-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--warning-bg);
-  color: var(--warning);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1.25rem;
-}
-
-.empty-pub-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--text-main);
-  margin-bottom: 0.5rem;
-}
-
-.empty-pub-desc {
-  max-width: 540px;
-  margin: 0 auto 1.5rem;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  line-height: 1.55;
-}
-
-.notice-box {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  max-width: 500px;
-  margin: 0 auto 1.75rem;
-  padding: 1rem 1.25rem;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  font-size: 0.85rem;
-}
-
-.notice-item strong {
-  display: block;
-  color: var(--text-main);
-}
-
-.notice-item span {
-  color: var(--text-muted);
-}
-
-.empty-pub-actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.85rem;
-}
-
-/* Horario publicado */
-.schedule-content-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.visual-schedule-card, .detailed-subjects-card, .pending-subjects-card {
-  overflow: hidden;
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.text-xs {
-  font-size: 0.75rem;
-}
-
-.text-sm {
+  padding: 0.4rem 0.9rem;
   font-size: 0.875rem;
 }
 
-.text-success {
-  color: var(--success);
+/* Resumen a la izquierda, contenido a la derecha (como Perfil) */
+.horario-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: start;
 }
 
-.text-warning {
-  color: var(--warning);
+.horario-col-left {
+  position: sticky;
+  top: calc(64px + 1.5rem);
 }
 
-.text-blue {
-  color: var(--blue);
+.horario-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  min-width: 0;
 }
 
-.text-muted {
+/* Iconos con tinte semántico (el texto acompaña siempre al color) */
+.tint-success { background-color: var(--success-bg); color: var(--success-text); }
+.tint-blue { background-color: var(--blue-light); color: var(--blue); }
+.tint-warning { background-color: var(--warning-bg); color: var(--warning-text); }
+.tint-indigo { background-color: var(--primary-light); color: var(--accent-text); }
+
+.resumen-list .ui-row {
+  --ui-separator-inset: 3.55rem;
+}
+
+.status-value {
+  color: var(--accent-text);
+}
+
+.empty-warning {
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.schedule-card .card-header {
+  padding-block: 0.9rem;
+}
+
+/* Lista de materias */
+.materia-row {
+  --ui-separator-inset: 2.6rem;
+}
+
+.color-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Mismos tonos que el borde de cada bloque en la cuadrícula */
+.dot-0 { background-color: #4f46e5; }
+.dot-1 { background-color: #10b981; }
+.dot-2 { background-color: #f59e0b; }
+.dot-3 { background-color: #8b5cf6; }
+.dot-4 { background-color: #ec4899; }
+.dot-5 { background-color: #0ea5e9; }
+
+.materia-horario {
+  flex-shrink: 0;
+  max-width: 45%;
+  font-size: 0.8125rem;
   color: var(--text-muted);
+  text-align: right;
+}
+
+.pendiente-row {
+  --ui-separator-inset: 3.55rem;
+}
+
+.motivo-tag {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
+.skel-box .ui-row {
+  min-height: 52px;
+}
+
+@media (max-width: 1024px) {
+  .horario-layout {
+    grid-template-columns: 1fr;
+  }
+  .horario-col-left {
+    position: static;
+  }
 }
 </style>

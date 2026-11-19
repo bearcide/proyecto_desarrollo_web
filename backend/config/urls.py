@@ -8,6 +8,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from apps.core.api.views import MatriculaTokenObtainPairView
 
 urlpatterns = [
+    path('api/v1/comercial/', include('apps.comercial.urls')),
     path('admin/', admin.site.urls),
 
     # La API vive bajo /api/v1/

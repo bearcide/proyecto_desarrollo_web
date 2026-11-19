@@ -76,6 +76,58 @@
           <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           <span>Planes de Estudio</span>
         </router-link>
+
+        <div class="sidebar-section-divider"></div>
+        <div class="sidebar-section-label">Contratación & Licencias</div>
+
+        <router-link
+          to="/admin/comercial/planes"
+          class="nav-item"
+          @click="sidebarAbierto = false"
+        >
+          <AppIcon name="award" class="nav-icon" size="18" />
+          <span>Planes Comerciales</span>
+        </router-link>
+
+        <router-link
+          to="/admin/comercial/configurador"
+          class="nav-item"
+          @click="sidebarAbierto = false"
+        >
+          <AppIcon name="sliders" class="nav-icon" size="18" />
+          <span>Configurar Plan</span>
+        </router-link>
+
+        <router-link
+          to="/admin/comercial/suscripcion"
+          class="nav-item"
+          @click="sidebarAbierto = false"
+        >
+          <AppIcon name="credit-card" class="nav-icon" size="18" />
+          <span>Mi Suscripción</span>
+        </router-link>
+
+        <router-link
+          to="/admin/comercial/licencias"
+          class="nav-item"
+          @click="sidebarAbierto = false"
+        >
+          <AppIcon name="shield" class="nav-icon" size="18" />
+          <span>Licencias</span>
+        </router-link>
+
+        <template v-if="esPropietario">
+          <div class="sidebar-section-divider"></div>
+          <div class="sidebar-section-label">Plataforma SaaS</div>
+          <router-link
+            to="/comercial/propietario/dashboard"
+            class="nav-item nav-item-propietario"
+            @click="sidebarAbierto = false"
+          >
+            <AppIcon name="zap" class="nav-icon" size="18" />
+            <span>Panel Propietario</span>
+          </router-link>
+        </template>
       </nav>
 
       <div class="sidebar-footer">
@@ -122,6 +174,15 @@
         </div>
 
         <div class="topbar-actions">
+          <router-link
+            v-if="esPropietario"
+            to="/comercial/propietario/dashboard"
+            class="btn btn-outline btn-sm switch-propietario-btn"
+            title="Abrir la consola del propietario SaaS"
+          >
+            <AppIcon name="zap" size="14" />
+            <span>Panel Propietario</span>
+          </router-link>
           <span class="tenant-uuid-pill" :title="authStore.tenantId">
             Tenant: {{ authStore.tenantId ? authStore.tenantId.substring(0, 8) + '…' : 'N/A' }}
           </span>
@@ -132,6 +193,7 @@
           >
             Cerrar sesión
           </button>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -147,10 +209,14 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationStore } from '../stores/notification';
+import { usePermisosComerciales } from '../modules/comercial/propietario/composables/usePermisosComerciales';
+import ThemeToggle from '../components/ThemeToggle.vue';
+import AppIcon from '../components/AppIcon.vue';
 
 const authStore = useAuthStore();
 const notifStore = useNotificationStore();
 const router = useRouter();
+const { esPropietario } = usePermisosComerciales();
 
 const sidebarAbierto = ref(false);
 
@@ -196,7 +262,7 @@ function cerrarSesion() {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -218,7 +284,7 @@ function cerrarSesion() {
 .brand-env {
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--primary-border);
+  color: #c7d2fe;
   text-transform: uppercase;
 }
 
@@ -232,7 +298,7 @@ function cerrarSesion() {
 .school-info-label {
   font-size: 0.65rem;
   text-transform: uppercase;
-  color: var(--text-light);
+  color: #94a3b8;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -281,13 +347,49 @@ function cerrarSesion() {
 }
 
 .nav-item.router-link-active {
-  background: linear-gradient(90deg, rgba(79, 70, 229, 0.3) 0%, rgba(124, 58, 237, 0.15) 100%);
+  background: rgba(79, 70, 229, 0.25);
   color: #ffffff;
-  border-left: 3px solid var(--primary);
+  border-left: 3px solid #818cf8;
+}
+
+.nav-item-propietario {
+  color: #c4b5fd;
+}
+
+.nav-item-propietario:hover {
+  color: #ffffff;
+  background-color: rgba(124, 58, 237, 0.2);
+}
+
+.switch-propietario-btn {
+  border-color: var(--violet);
+  color: var(--violet);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.switch-propietario-btn:hover {
+  background-color: var(--violet-light);
 }
 
 .nav-icon {
   flex-shrink: 0;
+}
+
+.sidebar-section-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.75rem 0.5rem 0.35rem;
+}
+
+.sidebar-section-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  font-weight: 700;
+  padding: 0.2rem 0.85rem;
 }
 
 /* Sidebar Footer */
@@ -311,7 +413,7 @@ function cerrarSesion() {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+  background: var(--accent);
   color: #ffffff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -338,7 +440,7 @@ function cerrarSesion() {
 
 .user-role {
   font-size: 0.7rem;
-  color: var(--text-light);
+  color: #94a3b8;
 }
 
 .logout-btn {
@@ -361,8 +463,10 @@ function cerrarSesion() {
 }
 
 .admin-topbar {
-  height: 60px;
-  background-color: #ffffff;
+  height: 64px;
+  background-color: var(--bar-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;

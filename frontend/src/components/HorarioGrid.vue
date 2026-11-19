@@ -1,37 +1,26 @@
 <template>
   <div class="horario-visual-root">
-    <!-- Vista de controles / tabs de vista para responsive -->
+    <!-- Selector de vista: segmented control (HIG) -->
     <div class="grid-controls">
-      <div class="view-toggles">
+      <div class="ui-segmented" role="radiogroup" aria-label="Tipo de vista del horario">
         <button
           type="button"
-          class="btn btn-sm"
-          :class="vistaModo === 'grid' ? 'btn-primary' : 'btn-secondary'"
+          role="radio"
+          :aria-checked="vistaModo === 'grid' ? 'true' : 'false'"
           @click="vistaModo = 'grid'"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <AppIcon name="grid" :size="14" />
           Cuadrícula semanal
         </button>
         <button
           type="button"
-          class="btn btn-sm"
-          :class="vistaModo === 'lista' ? 'btn-primary' : 'btn-secondary'"
+          role="radio"
+          :aria-checked="vistaModo === 'lista' ? 'true' : 'false'"
           @click="vistaModo = 'lista'"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <AppIcon name="list" :size="14" />
           Vista por días
         </button>
-      </div>
-
-      <div class="legend-chips">
-        <span
-          v-for="(item, idx) in itemsUnicos"
-          :key="item.clave"
-          class="legend-chip"
-        >
-          <span class="legend-color-dot" :class="`card-theme-${idx % 6}`"></span>
-          <strong>{{ item.clave }}</strong>: {{ item.nombre }}
-        </span>
       </div>
     </div>
 
@@ -84,7 +73,8 @@
                 <span>{{ formatearRangoMinutos(bloque.inicio, bloque.fin) }}</span>
               </div>
               <div v-if="bloque.profesor" class="tt-card-prof">
-                👤 {{ bloque.profesor }}
+                <AppIcon name="user" :size="11" />
+                {{ bloque.profesor }}
               </div>
             </div>
           </div>
@@ -102,7 +92,7 @@
         <div class="dia-card-header">
           <h4>{{ dia }}</h4>
           <span class="badge badge-neutral">
-            {{ (bloquesPorDia[dia] || []).length }} clase(s)
+            {{ (bloquesPorDia[dia] || []).length }} {{ (bloquesPorDia[dia] || []).length === 1 ? 'clase' : 'clases' }}
           </span>
         </div>
 
@@ -135,6 +125,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import AppIcon from './AppIcon.vue';
 
 const props = defineProps({
   /**
@@ -200,19 +191,6 @@ function formatearHoraEje(h) {
   return `${String(h).padStart(2, '0')}:00`;
 }
 
-// Extraer items únicos para leyenda
-const itemsUnicos = computed(() => {
-  const mapa = new Map();
-  props.items.forEach((item) => {
-    const clave = item.clave_materia || item.clave || item.detalle?.clave_materia || `M${item.materia}`;
-    const nombre = item.nombre || item.detalle?.nombre_materia || item.nombre_materia || clave;
-    if (!mapa.has(clave)) {
-      mapa.set(clave, { clave, nombre });
-    }
-  });
-  return Array.from(mapa.values());
-});
-
 // Aplanar todas las franjas horarias con su color y coordenadas
 const bloquesPorDia = computed(() => {
   const porDia = {
@@ -230,7 +208,7 @@ const bloquesPorDia = computed(() => {
   props.items.forEach((item) => {
     const clave = item.clave_materia || item.clave || item.detalle?.clave_materia || `M${item.materia}`;
     const nombre = item.nombre || item.detalle?.nombre_materia || item.nombre_materia || clave;
-    const grupo = item.grupo || item.detalle?.grupo || '';
+    const grupo = item.detalle?.grupo || item.grupo || '';
     const profesor = item.profesor || item.detalle?.profesor || '';
     const horarios = item.horarios || item.detalle?.horarios || [];
 
@@ -298,33 +276,6 @@ function obtenerEstiloBloque(bloque) {
   gap: 1rem;
 }
 
-.view-toggles {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.legend-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.85rem;
-}
-
-.legend-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.legend-color-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  display: inline-block;
-}
-
 .timetable-scroll-wrapper {
   overflow-x: auto;
   border-radius: var(--radius-md);
@@ -333,7 +284,7 @@ function obtenerEstiloBloque(bloque) {
 
 .timetable-container {
   min-width: 780px;
-  background: #ffffff;
+  background: var(--bg-card);
 }
 
 .hora-col-header {
@@ -341,6 +292,9 @@ function obtenerEstiloBloque(bloque) {
 }
 
 .tt-card-prof {
+  display: flex;
+  align-items: center;
+  gap: 3px;
   font-size: 0.68rem;
   color: inherit;
   opacity: 0.85;
@@ -351,7 +305,7 @@ function obtenerEstiloBloque(bloque) {
 }
 
 .badge-mini {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--fill-track);
   padding: 1px 4px;
   border-radius: 3px;
   font-weight: 700;
@@ -367,7 +321,7 @@ function obtenerEstiloBloque(bloque) {
 }
 
 .dia-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 1.15rem;

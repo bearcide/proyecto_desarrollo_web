@@ -20,8 +20,9 @@ class IdentidadApiTests(TestCase):
         self.user = U.objects.create_user(username='matricula', password='clave')
         self.admin = U.objects.create_user(username='administrador', password='clave')
         self.otro = U.objects.create_user(username='otro', password='clave')
-        self.a = Tenant.objects.create(nombre_comercial='A', plan_suscripcion='prueba')
-        self.b = Tenant.objects.create(nombre_comercial='B', plan_suscripcion='prueba')
+        # Fixtures históricas: mantienen explícitamente la política de transición.
+        self.a = Tenant.objects.create(nombre_comercial='A', plan_suscripcion='prueba', licencia_requerida=False)
+        self.b = Tenant.objects.create(nombre_comercial='B', plan_suscripcion='prueba', licencia_requerida=False)
         self.pa = PlanEstudios.objects.create(tenant=self.a, nombre='Plan A')
         self.pb = PlanEstudios.objects.create(tenant=self.b, nombre='Plan B')
         self.na = Nodo.objects.create(tenant=self.a, plan_estudios=self.pa, clave='A', nombre='Materia A', creditos=5, semestre=1)

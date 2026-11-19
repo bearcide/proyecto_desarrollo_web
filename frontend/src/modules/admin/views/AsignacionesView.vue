@@ -575,12 +575,12 @@ onMounted(() => {
 }
 
 .run-chip-btn:hover {
-  background: #ffffff;
+  background: var(--bg-card);
   border-color: var(--primary-border);
 }
 
 .run-chip-btn.run-selected {
-  background: #ffffff;
+  background: var(--bg-card);
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-light);
 }
@@ -690,7 +690,7 @@ onMounted(() => {
 }
 
 .row-pending {
-  background-color: #fffdf5;
+  background-color: var(--warning-bg);
 }
 
 .pref-pills {

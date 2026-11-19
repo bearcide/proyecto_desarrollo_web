@@ -1,0 +1,115 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { comercialService } from './comercialService';
+import api from '../../../../api';
+
+vi.mock('../../../../api', () => {
+  return {
+    default: {
+      get: vi.fn(),
+      post: vi.fn(),
+    },
+    obtenerMensajeError: (err) => err?.message || 'Error mock',
+  };
+});
+
+describe('comercialService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getPlanes', () => {
+    it('retorna la lista de planes cuando la API responde exitosamente', async () => {
+      const mockData = [
+        { id: '1', codigo: 'starter', nombre: 'Plan Básico' },
+        { id: '2', codigo: 'pro', nombre: 'Plan Pro' },
+      ];
+      api.get.mockResolvedValueOnce({ data: mockData });
+
+      const res = await comercialService.getPlanes();
+      expect(res).toEqual(mockData);
+      expect(api.get).toHaveBeenCalledWith('/comercial/planes/');
+    });
+
+    it('extrae results si la respuesta de DRF viene paginada', async () => {
+      const mockResults = [{ id: '1', nombre: 'Plan 1' }];
+      api.get.mockResolvedValueOnce({ data: { count: 1, results: mockResults } });
+
+      const res = await comercialService.getPlanes();
+      expect(res).toEqual(mockResults);
+    });
+
+    it('utiliza catálogo fallback si el backend está desconectado (sin response)', async () => {
+      api.get.mockRejectedValueOnce(new Error('Network Error'));
+
+      const res = await comercialService.getPlanes();
+      expect(res).toBeDefined();
+      expect(res.length).toBeGreaterThan(0);
+      expect(res.some((p) => p.codigo === 'pro')).toBe(true);
+    });
+  });
+
+  describe('getPrecios', () => {
+    it('envía los parámetros de filtro correctamente a la API', async () => {
+      api.get.mockResolvedValueOnce({ data: [] });
+
+      await comercialService.getPrecios({ plan: 'plan-123', modalidad: 'annual' });
+      expect(api.get).toHaveBeenCalledWith('/comercial/precios/', {
+        params: { plan: 'plan-123', modalidad: 'annual' },
+      });
+    });
+  });
+
+  describe('crearCheckout', () => {
+    it('envía payload e Idempotency-Key en la cabecera', async () => {
+      const mockCheckoutRes = {
+        orden: 'ord-123',
+        proveedor: 'stripe',
+        url: 'https://checkout.stripe.com/pay/cs_test_123',
+        estado: 'pending',
+      };
+      api.post.mockResolvedValueOnce({ data: mockCheckoutRes });
+
+      const res = await comercialService.crearCheckout({
+        precioId: 'precio-456',
+        alumnos: 300,
+        idempotencyKey: 'key-test-uuid',
+      });
+
+      expect(res).toEqual(mockCheckoutRes);
+      expect(api.post).toHaveBeenCalledWith(
+        '/comercial/checkout/',
+        { precio: 'precio-456', alumnos: 300 },
+        {
+          headers: {
+            'Idempotency-Key': 'key-test-uuid',
+          },
+        },
+      );
+    });
+  });
+
+  describe('solicitarFactura', () => {
+    it('normaliza el RFC a mayúsculas y envía los datos requeridos', async () => {
+      const datos = {
+        orden: 'ord-123',
+        rfc: 'ime190101abc',
+        razon_social: 'Escuela Demo',
+        regimen: '601',
+        codigo_postal: '06700',
+        uso_cfdi: 'G03',
+      };
+      api.post.mockResolvedValueOnce({ data: { id: 'fac-1', ...datos, rfc: 'IME190101ABC' } });
+
+      const res = await comercialService.solicitarFactura(datos);
+      expect(res.rfc).toBe('IME190101ABC');
+      expect(api.post).toHaveBeenCalledWith('/comercial/facturas/', {
+        orden: 'ord-123',
+        rfc: 'IME190101ABC',
+        razon_social: 'Escuela Demo',
+        regimen: '601',
+        codigo_postal: '06700',
+        uso_cfdi: 'G03',
+      });
+    });
+  });
+});
