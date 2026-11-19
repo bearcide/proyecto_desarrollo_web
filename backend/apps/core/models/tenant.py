@@ -18,6 +18,7 @@ class Tenant(TimeStampedModel):
     # TODO(negocio): el catálogo de tiers aún no está definido; cuando lo esté,
     # convertir a TextChoices o a FK hacia una tabla de planes.
     plan_suscripcion = models.CharField('plan de suscripción', max_length=50, db_index=True)
+    licencia_requerida = models.BooleanField(default=True, editable=False)
     estado = models.CharField(
         'estado', max_length=12, choices=Estado.choices, default=Estado.ACTIVO, db_index=True,
     )

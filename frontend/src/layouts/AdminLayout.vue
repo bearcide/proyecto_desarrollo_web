@@ -76,6 +76,58 @@
           <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           <span>Planes de Estudio</span>
         </router-link>
+
+        <div class="sidebar-section-divider"></div>
+        <div class="sidebar-section-label">Contratación & Licencias</div>
+
+        <router-link
+          to="/admin/comercial/planes"
+          class="nav-item"
+          @click="sidebarAbierto = false"
+        >
+          <AppIcon name="award" class="nav-icon" size="18" />
+          <span>Planes Comerciales</span>
+        </router-link>
+
+        <router-link
+          to="/admin/comercial/configurador"
+          class="nav-item"
+          @click="sidebarAbierto = false"
+        >
+          <AppIcon name="sliders" class="nav-icon" size="18" />
+          <span>Configurar Plan</span>
+        </router-link>
+
+        <router-link
+          to="/admin/comercial/suscripcion"
+          class="nav-item"
+          @click="sidebarAbierto = false"
+        >
+          <AppIcon name="credit-card" class="nav-icon" size="18" />
+          <span>Mi Suscripción</span>
+        </router-link>
+
+        <router-link
+          to="/admin/comercial/licencias"
+          class="nav-item"
+          @click="sidebarAbierto = false"
+        >
+          <AppIcon name="shield" class="nav-icon" size="18" />
+          <span>Licencias</span>
+        </router-link>
+
+        <template v-if="esPropietario">
+          <div class="sidebar-section-divider"></div>
+          <div class="sidebar-section-label">Plataforma SaaS</div>
+          <router-link
+            to="/comercial/propietario/dashboard"
+            class="nav-item nav-item-propietario"
+            @click="sidebarAbierto = false"
+          >
+            <AppIcon name="zap" class="nav-icon" size="18" />
+            <span>Panel Propietario</span>
+          </router-link>
+        </template>
       </nav>
 
       <div class="sidebar-footer">
@@ -122,6 +174,15 @@
         </div>
 
         <div class="topbar-actions">
+          <router-link
+            v-if="esPropietario"
+            to="/comercial/propietario/dashboard"
+            class="btn btn-outline btn-sm switch-propietario-btn"
+            title="Abrir la consola del propietario SaaS"
+          >
+            <AppIcon name="zap" size="14" />
+            <span>Panel Propietario</span>
+          </router-link>
           <span class="tenant-uuid-pill" :title="authStore.tenantId">
             Tenant: {{ authStore.tenantId ? authStore.tenantId.substring(0, 8) + '…' : 'N/A' }}
           </span>
@@ -148,11 +209,14 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationStore } from '../stores/notification';
+import { usePermisosComerciales } from '../modules/comercial/propietario/composables/usePermisosComerciales';
 import ThemeToggle from '../components/ThemeToggle.vue';
+import AppIcon from '../components/AppIcon.vue';
 
 const authStore = useAuthStore();
 const notifStore = useNotificationStore();
 const router = useRouter();
+const { esPropietario } = usePermisosComerciales();
 
 const sidebarAbierto = ref(false);
 
@@ -288,8 +352,44 @@ function cerrarSesion() {
   border-left: 3px solid #818cf8;
 }
 
+.nav-item-propietario {
+  color: #c4b5fd;
+}
+
+.nav-item-propietario:hover {
+  color: #ffffff;
+  background-color: rgba(124, 58, 237, 0.2);
+}
+
+.switch-propietario-btn {
+  border-color: var(--violet);
+  color: var(--violet);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.switch-propietario-btn:hover {
+  background-color: var(--violet-light);
+}
+
 .nav-icon {
   flex-shrink: 0;
+}
+
+.sidebar-section-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.75rem 0.5rem 0.35rem;
+}
+
+.sidebar-section-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  font-weight: 700;
+  padding: 0.2rem 0.85rem;
 }
 
 /* Sidebar Footer */

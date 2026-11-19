@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 
     # Locales
     'apps.core',  # O la ruta de tus apps locales
+    'apps.comercial',
 ]
 
 MIDDLEWARE = [
@@ -136,6 +137,14 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
+    'ENUM_NAME_OVERRIDES': {
+        'InstitucionEstado': [('ACTIVO', 'Activo'), ('SUSPENDIDO', 'Suspendido'), ('CANCELADO', 'Cancelado')],
+        'ComercialPagoEstado': ['pending', 'paid', 'failed'],
+        'ComercialContratoEstado': ['draft', 'active', 'canceled'],
+        'ComercialSuscripcionEstado': ['pending', 'active', 'past_due', 'canceled'],
+        'ComercialLicenciaEstado': ['active', 'revoked'],
+        'ComercialFacturaEstado': ['requested', 'processing', 'rejected'],
+    },
     'TITLE': 'InscripcionMadeEasy API',
     'DESCRIPTION': 'API RESTful multi-tenant para inscripciones escolares',
     'VERSION': '1.0.0',
@@ -194,4 +203,10 @@ LOGGING = {
 
 # El selector es contexto solicitado; el servicio verifica la membresía.
 from corsheaders.defaults import default_headers
-CORS_ALLOW_HEADERS = (*default_headers, 'x-tenant-id')
+CORS_ALLOW_HEADERS = (*default_headers, 'x-tenant-id', 'idempotency-key')
+
+COMMERCIAL_PROVIDER = env('COMMERCIAL_PROVIDER', default='DEMO')
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
+COMMERCIAL_SUCCESS_URL = env('COMMERCIAL_SUCCESS_URL', default='http://localhost:5173/contratacion/exito')
+COMMERCIAL_CANCEL_URL = env('COMMERCIAL_CANCEL_URL', default='http://localhost:5173/contratacion/cancelado')

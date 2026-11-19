@@ -16,6 +16,7 @@ from apps.core.services.importacion_csv import importar
 from apps.core.services.asignacion import generar, publicar, serializar_ejecucion, serializar_resultado
 from apps.core.services.errors import ReglaDeNegocioError
 from .serializers import ProblemDetailsSerializer
+from apps.comercial.academic import exigir_modulo
 
 
 class CsvErrorSerializer(serializers.Serializer):
@@ -91,12 +92,14 @@ class EmptyRequestSerializer(serializers.Serializer):
     description='Escuela solicitada; siempre se verifica membresía. Obligatorio con varias membresías.')])
 class DemoAdminView(APIView):
     permission_classes=[IsAuthenticated]
+    funcionalidad_comercial = 'asignaciones'
 
     def initial(self,request,*args,**kwargs):
         super().initial(request,*args,**kwargs)
         self.identidad=resolver_identidad(request)
         if not self.identidad.membresia.es_administrador:
             raise PermissionDenied('Se requiere administración escolar.')
+        exigir_modulo(self.identidad.tenant, self.funcionalidad_comercial)
 
     def run(self,pk):
         return get_object_or_404(EjecucionAsignacion,pk=pk,tenant=self.identidad.tenant)
@@ -108,6 +111,7 @@ class DemoAdminView(APIView):
 
 
 class ImportacionView(DemoAdminView):
+    funcionalidad_comercial = 'importaciones'
     @extend_schema(request=ImportRequestSerializer, responses={200:ImportReportSerializer, (400,'application/problem+json'):ProblemDetailsSerializer})
     def post(self,request,accion):
         if not isinstance(request.data,dict) or set(request.data)!={'archivos'}:
@@ -116,6 +120,7 @@ class ImportacionView(DemoAdminView):
 
 
 class GruposView(DemoAdminView):
+    funcionalidad_comercial = 'horarios'
     @extend_schema(responses=GrupoOutputSerializer(many=True))
     def get(self,request):
         groups=Grupo.objects.filter(tenant=self.identidad.tenant).order_by('nodo_id','clave','pk')
@@ -123,6 +128,7 @@ class GruposView(DemoAdminView):
 
 
 class EstadisticasView(DemoAdminView):
+    funcionalidad_comercial = 'reportes'
     @extend_schema(responses=StatsOutputSerializer)
     def get(self,request):
         tenant=self.identidad.tenant
@@ -171,6 +177,7 @@ def celda_segura(value):
 
 
 class CsvResultadosView(DemoAdminView):
+    funcionalidad_comercial = 'reportes'
     @extend_schema(responses={(200,'text/csv'):OpenApiTypes.STR})
     def get(self,request,pk):
         run=self.run(pk); output=io.StringIO(); writer=csv.writer(output)
@@ -190,6 +197,7 @@ class HorarioView(APIView):
     @extend_schema(responses=HorarioOutputSerializer,parameters=[OpenApiParameter('X-Tenant-ID',str,OpenApiParameter.HEADER)])
     def get(self,request):
         identidad=resolver_identidad(request); alumno=obtener_alumno(identidad)
+        exigir_modulo(identidad.tenant, 'horarios')
         run=EjecucionAsignacion.objects.filter(tenant=identidad.tenant,estado='PUBLICADO').first()
         if run is None: raise NotFound('Todavía no hay resultados publicados.')
         response=Response({'ejecucion':run.pk,'resultados':[serializar_resultado(r) for r in run.resultados.filter(alumno=alumno).order_by('nodo_id')]})

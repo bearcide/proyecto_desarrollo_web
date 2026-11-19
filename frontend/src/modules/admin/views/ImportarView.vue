@@ -121,7 +121,7 @@
 
         <div class="csv-meta-info">
           <span>Líneas: {{ contarLineas(archivos[tabActivo]) }}</span>
-          <span>Tamaño: {{ (new Blob([archivos[tabActivo]]).size / 1024).toFixed(1) }} KB</span>
+          <span>Tamaño: {{ tamanoKB(archivos[tabActivo]) }} KB</span>
         </div>
       </div>
     </div>
@@ -241,6 +241,16 @@ const totalArchivosConContenido = computed(() => {
 function contarLineas(texto) {
   if (!texto || !texto.trim()) return 0;
   return texto.trim().split('\n').length;
+}
+
+/**
+ * Calcula el tamaño legible (en KB) de un texto sin depender de APIs globales
+ * como `Blob` dentro del render function, evitando que un fallo de render
+ * deje la pantalla en blanco (pantalla negra).
+ */
+function tamanoKB(texto) {
+  const valor = typeof texto === 'string' ? texto : '';
+  return (valor.length / 1024).toFixed(1);
 }
 
 function handleFileUpload(event, clave) {

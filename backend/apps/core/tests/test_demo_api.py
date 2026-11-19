@@ -27,8 +27,8 @@ def csv_text(headers, rows):
 
 class DemoApiBase(TestCase):
     def setUp(self):
-        self.tenant = Tenant.objects.create(nombre_comercial='Demo ficticia', plan_suscripcion='demo')
-        self.other_tenant = Tenant.objects.create(nombre_comercial='Escuela externa ficticia', plan_suscripcion='demo')
+        self.tenant = Tenant.objects.create(nombre_comercial='Demo ficticia', plan_suscripcion='demo', licencia_requerida=False)
+        self.other_tenant = Tenant.objects.create(nombre_comercial='Escuela externa ficticia', plan_suscripcion='demo', licencia_requerida=False)
         self.admin = get_user_model().objects.create_user(username='admin_demo_test', password='DemoLocal2026!')
         MembresiaTenant.objects.create(user=self.admin, tenant=self.tenant, es_administrador=True)
         self.client = APIClient()

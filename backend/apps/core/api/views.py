@@ -64,6 +64,7 @@ class TenantViewSet(
     description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
 )])
 class PlanEstudiosViewSet(TenantScopedMixin, viewsets.ModelViewSet):
+    funcionalidad_comercial = 'planes_estudios'
     queryset = PlanEstudios.objects.all()
     serializer_class = PlanEstudiosSerializer
     filter_backends = [SearchFilter, OrderingFilter]
@@ -76,6 +77,7 @@ class PlanEstudiosViewSet(TenantScopedMixin, viewsets.ModelViewSet):
     description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
 )])
 class NodoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
+    funcionalidad_comercial = 'planes_estudios'
     queryset = Nodo.objects.select_related('plan_estudios').prefetch_related('prerrequisitos')
     serializer_class = NodoSerializer
     filter_backends = [SearchFilter, OrderingFilter]
@@ -102,6 +104,7 @@ class PrerrequisitoViewSet(
     """Aristas del grafo. Sin PUT/PATCH: cambiar una arista es borrarla y crear otra."""
 
     queryset = Prerrequisito.objects.select_related('nodo', 'prerrequisito').order_by('pk')
+    funcionalidad_comercial = 'planes_estudios'
     serializer_class = PrerrequisitoSerializer
 
     def get_queryset(self):
@@ -123,6 +126,7 @@ class PrerrequisitoViewSet(
     description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
 )])
 class NodoEstadisticoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
+    funcionalidad_comercial = 'reportes'
     queryset = NodoEstadistico.objects.select_related('nodo').order_by('pk')
     serializer_class = NodoEstadisticoSerializer
     filter_backends = [OrderingFilter]
@@ -138,6 +142,7 @@ class NodoEstadisticoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
     description='UUID de escuela; obligatorio con varias membresías. Siempre se verifica la membresía.',
 )])
 class AlumnoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
+    funcionalidad_comercial = 'alumnos'
     queryset = Alumno.objects.select_related('plan_estudios')
     serializer_class = AlumnoSerializer
     alumnos_por_propietario = True
@@ -153,6 +158,14 @@ class AlumnoViewSet(TenantScopedMixin, viewsets.ModelViewSet):
         if not identidad.membresia.es_administrador:
             queryset = queryset.filter(pk=obtener_alumno(identidad).pk)
         return _filtrar_por_id(queryset, self.request, 'plan_estudios', 'plan_estudios_id')
+
+    def perform_create(self, serializer):
+        from django.db import transaction
+        from apps.comercial.academic import exigir_alumnos
+        with transaction.atomic():
+            tenant = Tenant.objects.select_for_update().get(pk=self.get_tenant().pk)
+            exigir_alumnos(tenant, adicionales=1)
+            super().perform_create(serializer)
 
     def get_serializer_class(self):
         if getattr(self, 'swagger_fake_view', False):

@@ -11,6 +11,13 @@ function obtenerStorage(key, parseJson = false) {
   }
 }
 
+function aBandera(valor) {
+  if (typeof valor === 'boolean') return valor;
+  if (typeof valor === 'string') return valor.trim().toLowerCase() === 'true';
+  if (typeof valor === 'number') return valor === 1;
+  return false;
+}
+
 /**
  * Estado global de sesión, tenant y perfil del usuario en InscripcionMadeEasy.
  */
@@ -26,12 +33,31 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    estaAutenticado: (state) => Boolean(state.token && state.tenantId),
+    estaAutenticado: (state) => {
+      if (!state.token) return false;
+      if (state.tenantId) return true;
+      const claims = decodificarToken(state.token) || {};
+      const candidata = claims.is_superuser ?? claims.superuser ?? claims.es_propietario;
+      const valor = candidata === undefined ? Boolean(state.membresia?.es_propietario) : candidata;
+      return aBandera(valor);
+    },
     esAdministrador: (state) => Boolean(state.membresia?.es_administrador),
     esAlumno: (state) => Boolean(state.membresia?.es_alumno),
+    esPropietario: (state) => {
+      const claims = decodificarToken(state.token) || {};
+      const candidata = claims.is_superuser ?? claims.superuser ?? claims.es_propietario;
+      const valor = candidata === undefined ? Boolean(state.membresia?.es_propietario) : candidata;
+      return aBandera(valor);
+    },
     nombreEscuela: (state) => state.membresia?.nombre_escuela || 'Escuela',
     rutaInicio: (state) => {
+      const claims = decodificarToken(state.token) || {};
+      const candidata = claims.is_superuser ?? claims.superuser ?? claims.es_propietario;
+      const valor = candidata === undefined ? Boolean(state.membresia?.es_propietario) : candidata;
+      const esProp = aBandera(valor);
+
       if (state.membresia?.es_administrador) return '/admin/dashboard';
+      if (esProp) return '/comercial/propietario/dashboard';
       if (state.membresia?.es_alumno) return '/alumno/horario';
       return '/login';
     },

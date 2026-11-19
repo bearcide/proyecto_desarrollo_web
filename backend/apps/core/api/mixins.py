@@ -19,6 +19,13 @@ class TenantScopedMixin:
 
     permission_classes = [IsAuthenticated, TieneTenant]
     tenant_lookup = 'tenant'  # Campo del modelo que apunta al Tenant ('pk' para Tenant).
+    funcionalidad_comercial = None
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if self.funcionalidad_comercial and request.method in self.allowed_methods:
+            from apps.comercial.academic import exigir_modulo
+            exigir_modulo(self.get_tenant(), self.funcionalidad_comercial)
 
     def get_identidad(self):
         return resolver_identidad(self.request)

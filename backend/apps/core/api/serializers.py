@@ -37,6 +37,8 @@ class MatriculaTokenObtainPairSerializer(TokenObtainPairSerializer):
         if user is None or not user.is_active:
             raise AuthenticationFailed('No se pudo iniciar sesión con esas credenciales.')
         refresh = RefreshToken.for_user(user)
+        # Solo guía de navegación para Vue; la API siempre consulta el usuario en BD.
+        refresh['is_superuser'] = user.is_superuser
         data = {'refresh': str(refresh), 'access': str(refresh.access_token)}
         return data
 

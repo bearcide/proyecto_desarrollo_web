@@ -28,7 +28,7 @@ class MembresiaSinBaseTests(TestCase):
     def test_estado_migraciones_coincide_con_modelos(self):
         from django.apps import apps
         state = ProjectState()
-        for name in ('0001_initial', '0002_membresia_tenant', '0003_poblar_membresias_alumnos', '0004_demo_academica'):
+        for name in ('0001_initial', '0002_membresia_tenant', '0003_poblar_membresias_alumnos', '0004_demo_academica', '0005_licencia_institucional'):
             migration = import_module('apps.core.migrations.' + name).Migration(name, 'core')
             state = migration.mutate_state(state)
         current = ProjectState.from_apps(apps)
