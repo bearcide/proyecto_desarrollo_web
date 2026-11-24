@@ -1,4 +1,7 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
+import { createApp, nextTick } from 'vue';
+import { createPinia } from 'pinia';
+import api from '../../../api';
 import DashboardComercialView from './views/DashboardComercialView.vue';
 import ClientesComercialesView from './views/ClientesComercialesView.vue';
 import PlanesComercialesView from './views/PlanesComercialesView.vue';
@@ -27,6 +30,29 @@ describe('Módulo comercial del propietario — smoke de compilación y normaliz
     expect(SuscripcionesComercialesView).toBeTruthy();
     expect(LicenciasComercialesView).toBeTruthy();
     expect(FacturacionComercialView).toBeTruthy();
+  });
+
+  test('monta facturación y consulta transacciones y solicitudes al abrir la vista', async () => {
+    const get = vi.spyOn(api, 'get').mockImplementation(async (url) => ({
+      data: url === '/comercial/transacciones/'
+        ? [{ id: 'pago', comprobante_id: 'recibo', institucion: 'Escuela A', estado: 'paid' }]
+        : [],
+    }));
+    const elemento = document.createElement('div');
+    const app = createApp(FacturacionComercialView);
+    app.use(createPinia());
+    try {
+      app.mount(elemento);
+      await vi.waitFor(async () => {
+        await nextTick();
+        expect(elemento.textContent).toContain('Escuela A');
+        expect(elemento.textContent).toContain('Descargar');
+      });
+      expect(get).toHaveBeenCalledWith('/comercial/facturas/', { params: { page: 1 } });
+    } finally {
+      app.unmount();
+      get.mockRestore();
+    }
   });
 
   test('las rutas provisionales del contrato comercial se exponen', () => {

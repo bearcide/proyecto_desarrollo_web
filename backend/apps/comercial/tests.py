@@ -112,6 +112,16 @@ class ComercialTests(TestCase):
         contrato.fin=timezone.now()-timedelta(hours=1); contrato.save()
         self.assertFalse(s.acceso(self.tenant)['activo'])
 
+    def test_transaccion_expone_comprobante_correspondiente_e_institucion(self):
+        orden = self.orden()
+        pendiente = self.pago(orden, referencia='demo_pendiente_pdf', estado='pending')
+        pagada = self.pago(orden)
+        for transaccion, comprobante in [(pendiente, None), (pagada, str(m.Comprobante.objects.get(transaccion=pagada).pk))]:
+            respuesta = self.client.get(f'/api/v1/comercial/transacciones/{transaccion.pk}/')
+            self.assertEqual(respuesta.status_code, 200)
+            self.assertEqual(respuesta.data['comprobante_id'], comprobante)
+            self.assertEqual(respuesta.data['institucion'], self.tenant.nombre_comercial)
+
     def test_pdf_factura_y_limites(self):
         orden=self.orden(); self.pago(orden)
         comprobante=m.Comprobante.objects.get()

@@ -236,7 +236,7 @@ async function aplicarFiltros() {
 async function descargarComprobante(pago) {
   descargando.value = true;
   try {
-    const { url, nombre } = await descargarComprobanteComercial(pago.id);
+    const { url, nombre } = await descargarComprobanteComercial(pago.comprobante);
     const enlace = document.createElement('a');
     enlace.href = url;
     enlace.download = nombre;

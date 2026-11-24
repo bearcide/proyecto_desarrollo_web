@@ -198,9 +198,14 @@ class LicenciaView(Lectura):
         return Response(self.get_serializer(obj).data)
 
 
+class TransaccionSerializer(serializador(m.Transaccion)):
+    comprobante_id = serializers.UUIDField(source='comprobante.pk', allow_null=True, read_only=True)
+    institucion = serializers.CharField(source='orden.tenant.nombre_comercial', read_only=True)
+
+
 class TransaccionView(Lectura):
-    queryset = m.Transaccion.objects.all()
-    serializer_class = serializador(m.Transaccion)
+    queryset = m.Transaccion.objects.select_related('orden__tenant', 'comprobante')
+    serializer_class = TransaccionSerializer
     tenant_path = 'orden__tenant'
 
 

@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { RUTAS_COMERCIALES, obtenerPagosComerciales, obtenerSolicitudesFacturacionComerciales } from '../services/apiComercial';
+import { RUTAS_COMERCIALES } from '../services/apiComercial';
 import { useListaComercial } from './useListaComercial';
 import { normalizarPagoComercial, normalizarSolicitudFacturacion } from '../services/normalizarComercial';
 
@@ -70,7 +70,7 @@ export function useFacturacionComercial() {
     solicitudesTotal: solicitudes.total,
     solicitudesCargando: solicitudes.cargando,
     solicitudesError: solicitudes.error,
-    solicitudesPaginaActual: solicuciones.paginaActual,
+    solicitudesPaginaActual: solicitudes.paginaActual,
     solicitudesUrlSiguiente: solicitudes.urlSiguiente,
     solicitudesUrlAnterior: solicitudes.urlAnterior,
     fechaInicio,
