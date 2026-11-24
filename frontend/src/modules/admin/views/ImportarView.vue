@@ -205,6 +205,7 @@ import api, { obtenerMensajeError } from '../../../api';
 import { useNotificationStore } from '../../../stores/notification';
 
 const notifStore = useNotificationStore();
+const timeoutImportacionMs = 300_000;
 
 const tiposArchivo = [
   { clave: 'planes', titulo: 'Planes de Estudio', encabezados: 'nombre,descripcion' },
@@ -367,11 +368,12 @@ async function ejecutarValidacion() {
   errorGenerico.value = null;
   listaErrores.value = [];
   resultadoValidacion.value = null;
+  resultadoImportacion.value = null;
 
   try {
     const { data } = await api.post('/demo/importaciones/validar/', {
       archivos: payloadArchivos,
-    });
+    }, { timeout: timeoutImportacionMs });
     resultadoValidacion.value = data;
     listaErrores.value = data.errores || [];
     if (data.valido) {
@@ -385,7 +387,7 @@ async function ejecutarValidacion() {
     } else {
       errorGenerico.value = obtenerMensajeError(err);
     }
-    notifStore.error('Se detectaron inconsistencias en la validación.');
+    notifStore.error(dataErr?.errores ? 'Se detectaron inconsistencias en la validación.' : 'No se pudo completar la validación.');
   } finally {
     validando.value = false;
   }
@@ -401,11 +403,13 @@ async function ejecutarConfirmacion() {
   confirmando.value = true;
   errorGenerico.value = null;
   listaErrores.value = [];
+  resultadoValidacion.value = null;
+  resultadoImportacion.value = null;
 
   try {
     const { data } = await api.post('/demo/importaciones/confirmar/', {
       archivos: payloadArchivos,
-    });
+    }, { timeout: timeoutImportacionMs });
     resultadoImportacion.value = data;
     resultadoValidacion.value = data;
     listaErrores.value = data.errores || [];

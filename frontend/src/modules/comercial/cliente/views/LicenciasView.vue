@@ -93,11 +93,11 @@
             <div class="licencia-limits-box">
               <div class="limit-pill">
                 <AppIcon name="user" size="14" />
-                <span>Capacidad: {{ lic.max_alumnos?.toLocaleString() || 'Ilimitada' }} alumnos</span>
+                <span>Capacidad: {{ lic.max_alumnos?.toLocaleString() ?? '—' }} alumnos</span>
               </div>
               <div class="limit-pill">
                 <AppIcon name="building" size="14" />
-                <span>Sedes: {{ lic.max_planteles || 1 }} campus</span>
+                <span>Sedes: {{ lic.max_planteles ?? '—' }} campus</span>
               </div>
             </div>
 
@@ -195,12 +195,9 @@ function formatearFecha(isoString) {
 
 function obtenerFuncionalidades(lic) {
   if (Array.isArray(lic.funcionalidades)) return lic.funcionalidades;
-  return [
-    'Generador inteligente de horarios',
-    'Multi-plantel centralizado',
-    'Importador masivo',
-    'Soporte 24/7',
-  ];
+  return Object.entries(lic.funcionalidades ?? {})
+    .filter(([, habilitada]) => habilitada)
+    .map(([modulo]) => modulo.replaceAll('_', ' '));
 }
 </script>
 

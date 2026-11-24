@@ -263,5 +263,5 @@ export async function descargarComprobanteComercial(id) {
   const disposition = String(headers?.['content-disposition'] || '');
   const nombre = /filename[^;]*=([^;]*)/.exec(disposition)?.[1];
   const url = URL.createObjectURL(data);
-  return { url, nombre: nombre ? decodeURIComponent(nombre) : `comprobante-${id}.pdf` };
+  return { url, nombre: nombre ? decodeURIComponent(nombre.replace(/^"|"$/g, '')) : `comprobante-${id}.pdf` };
 }
