@@ -20,10 +20,12 @@ En otra terminal, también desde la raíz:
 ```bash
 cd frontend
 npm ci
-VITE_API_BASE_URL=http://127.0.0.1:18082/api/v1 npm run dev -- --host 127.0.0.1 --port 5174 --strictPort
+VITE_DEMO_MODE=commercial VITE_API_BASE_URL=http://127.0.0.1:18082/api/v1 npm run dev -- --host 127.0.0.1 --port 5174 --strictPort
 ```
 
 Abre [la interfaz local](http://127.0.0.1:5174/). El comando de siembra muestra la contraseña exclusivamente ficticia de estas cuentas. Usa perfiles de navegador distintos para evitar que el almacenamiento de sesión se comparta entre roles.
+
+Los accesos rápidos se habilitan en Vite sobre localhost. Selecciona `commercial` para pagos o `academic` para la demo académica. Si omites `VITE_DEMO_MODE`, queda disponible el login manual. Una compilación de producción excluye ambos juegos de credenciales ficticias.
 
 ## Guion
 

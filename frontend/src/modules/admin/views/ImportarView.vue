@@ -9,6 +9,7 @@
       </div>
       <div class="header-actions">
         <button
+          v-if="plantillaDemoDisponible"
           type="button"
           class="btn btn-secondary btn-sm"
           @click="cargarDatosDeMuestra"
@@ -279,7 +280,12 @@ function limpiarTodo() {
   errorGenerico.value = null;
 }
 
+const plantillaDemoDisponible = import.meta.env.DEV
+  && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+
 function cargarDatosDeMuestra() {
+  if (!import.meta.env.DEV || !plantillaDemoDisponible) return;
+
   archivos.value = {
     planes: `nombre,descripcion
 Informática,Plan ficticio de informática

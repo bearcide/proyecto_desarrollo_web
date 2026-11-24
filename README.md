@@ -105,7 +105,7 @@ En otra terminal:
 
 ```bash
 cd frontend
-npm run dev -- --host 127.0.0.1
+VITE_DEMO_MODE=academic npm run dev -- --host 127.0.0.1
 ```
 
 Abrir `http://127.0.0.1:5173`. El cliente apunta a `http://127.0.0.1:8000/api/v1`; puede cambiarse mediante `VITE_API_BASE_URL`. La API debe permitir el origen por CORS. Generar y publicar una propuesta como administrador antes de consultar el horario del alumno.
