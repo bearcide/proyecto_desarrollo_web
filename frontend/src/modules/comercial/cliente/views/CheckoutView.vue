@@ -27,12 +27,12 @@
       <span>{{ error }}</span>
     </div>
 
-    <div v-if="cargando && !plan" class="empty-state">
+    <div v-if="cargando && !cotizacion" class="empty-state">
       <div class="spinner spinner-primary" style="margin: 0 auto 0.75rem;"></div>
       <span class="text-muted">Cargando condiciones oficiales de la orden…</span>
     </div>
 
-    <div v-else-if="plan && precio" class="checkout-layout">
+    <div v-else-if="plan && precio && cotizacion" class="checkout-layout">
       <!-- Columna Izquierda: Información de la Institución y Declaraciones -->
       <div class="checkout-details-column">
         <!-- Tarjeta de Institución Contratante -->
@@ -77,7 +77,7 @@
               <AppIcon name="check-circle" size="18" class="text-success" />
               <div>
                 <strong>Idempotencia en cada intento:</strong>
-                <p>Cada solicitud incluye una clave UUID única para prevenir cobros duplicados en caso de reintentos.</p>
+                <p>Los reintentos de la misma compra conservan su clave.</p>
               </div>
             </li>
             <li class="security-rule-item">
@@ -123,32 +123,16 @@
           <div class="summary-items-list">
             <div class="summary-item">
               <span class="item-name">Tarifa base institucional</span>
-              <span class="item-val">{{ formatearMoneda(desglose.base, desglose.moneda) }}</span>
+              <span class="item-val">{{ formatearMoneda(cotizacion.base, cotizacion.moneda) }}</span>
             </div>
 
-            <div v-if="desglose.cuotaAlumnos > 0" class="summary-item">
+            <div v-if="cotizacion.cuota_alumnos > 0" class="summary-item">
               <span class="item-name">
                 Volumen contratado ({{ alumnos }} alumnos):
               </span>
-              <span class="item-val">+ {{ formatearMoneda(desglose.cuotaAlumnos, desglose.moneda) }}</span>
+              <span class="item-val">+ {{ formatearMoneda(cotizacion.cuota_alumnos, cotizacion.moneda) }}</span>
             </div>
 
-            <div v-if="desglose.cuotaPlanteles > 0" class="summary-item">
-              <span class="item-name">
-                Sedes adicionales ({{ planteles }} planteles):
-              </span>
-              <span class="item-val">+ {{ formatearMoneda(desglose.cuotaPlanteles, desglose.moneda) }}</span>
-            </div>
-
-            <div class="summary-item border-top">
-              <span class="item-name">Moneda y Divisa</span>
-              <span class="item-val font-bold">Pesos Mexicanos (MXN)</span>
-            </div>
-
-            <div class="summary-item">
-              <span class="item-name">Vigencia estimada</span>
-              <span class="item-val">{{ precio.dias ? `${precio.dias} días naturales` : 'Periodo de contratación' }}</span>
-            </div>
           </div>
 
           <div class="summary-total-strip">
@@ -157,7 +141,7 @@
               <span class="iva-note">Precios en moneda nacional</span>
             </div>
             <div class="total-price-large">
-              {{ formatearMoneda(desglose.total, desglose.moneda) }}
+              {{ formatearMoneda(cotizacion.total, cotizacion.moneda) }}
             </div>
           </div>
 
@@ -189,63 +173,65 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import AppIcon from '../../../../components/AppIcon.vue';
 import ModalidadBadge from '../components/ModalidadBadge.vue';
 import DemoConfirmModal from '../components/DemoConfirmModal.vue';
 import { useAuthStore } from '../../../../stores/auth';
+import { comercialService } from '../api/comercialService';
 import { useComercial } from '../composables/useComercial';
 import {
   formatearMoneda,
-  calcularTotalEstimado,
   generarIdempotencyKey,
 } from '../domain/comercialCalculos';
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const { cargando, error, planes, precios, cargarCatalogo, iniciarCheckout } = useComercial();
 
 const plan = ref(null);
 const precio = ref(null);
-const alumnos = ref(500);
-const planteles = ref(1);
-const aceptaTerminos = ref(true);
+const alumnos = ref(1);
+const cotizacion = ref(null);
+const aceptaTerminos = ref(false);
 const procesando = ref(false);
 
 const modalDemoAbierto = ref(false);
 const ordenGeneradaId = ref('');
 
+let idempotencyKey;
+
 onMounted(async () => {
-  await cargarCatalogo();
+  try {
+    const intento = typeof route.query.intento === 'string' && /^[A-Za-z0-9_-]{8,100}$/.test(route.query.intento)
+      ? route.query.intento
+      : generarIdempotencyKey();
+    idempotencyKey = intento;
+    if (route.query.intento !== intento) {
+      await router.replace({ query: { ...route.query, intento } });
+    }
+    await cargarCatalogo();
 
-  const planIdQuery = route.query.plan_id;
-  const precioIdQuery = route.query.precio_id;
-  if (route.query.alumnos) alumnos.value = parseInt(route.query.alumnos, 10) || 500;
-  if (route.query.planteles) planteles.value = parseInt(route.query.planteles, 10) || 1;
-
-  if (planIdQuery) {
-    plan.value = planes.value.find((p) => p.id === planIdQuery);
+    precio.value = precios.value.find((item) => item.id === route.query.precio_id && item.activo);
+    plan.value = planes.value.find((item) => item.id === precio.value?.plan && item.activo);
+    if (!precio.value || !plan.value) {
+      error.value = 'Selecciona un plan y una modalidad vigentes en el configurador.';
+      return;
+    }
+    const cantidad = Number(route.query.alumnos);
+    alumnos.value = Number.isInteger(cantidad) && cantidad >= 1
+      ? Math.min(cantidad, plan.value.max_alumnos)
+      : 1;
+    cotizacion.value = await comercialService.cotizar({
+      precioId: precio.value.id,
+      alumnos: alumnos.value,
+      contratoId: route.query.contrato_id,
+    });
+  } catch (err) {
+    error.value = err.message;
   }
-  if (!plan.value && planes.value.length) {
-    plan.value = planes.value.find((p) => p.codigo === 'pro') || planes.value[0];
-  }
-
-  if (precioIdQuery) {
-    precio.value = precios.value.find((p) => p.id === precioIdQuery);
-  }
-  if (!precio.value && plan.value) {
-    const list = precios.value.filter((p) => p.plan === plan.value.id && p.activo);
-    precio.value = list.find((p) => p.modalidad === 'annual') || list[0];
-  }
-});
-
-const desglose = computed(() => {
-  return calcularTotalEstimado({
-    precio: precio.value,
-    alumnos: alumnos.value,
-    planteles: planteles.value,
-  });
 });
 
 async function procesarCheckout() {
@@ -257,19 +243,25 @@ async function procesarCheckout() {
       precioId: precio.value.id,
       alumnos: alumnos.value,
       contratoId: route.query.contrato_id || null,
+      cotizacion: cotizacion.value,
+      idempotencyKey,
     });
 
     ordenGeneradaId.value = sesion.orden;
 
-    if (sesion.proveedor === 'stripe' && sesion.url) {
+    if (sesion.estado === 'paid') {
+      await router.push({ name: 'admin-comercial-checkout-resultado', query: { orden_id: sesion.orden } });
+    } else if (sesion.proveedor === 'stripe' && sesion.url) {
       // Redirección HTTPS oficial a Stripe Checkout
       window.location.href = sesion.url;
-    } else {
+    } else if (sesion.proveedor === 'DEMO') {
       // Proveedor DEMO oficial (url: null según docs/CONTRATO_COMERCIAL_API.md)
       modalDemoAbierto.value = true;
+    } else {
+      error.value = 'La pasarela no proporcionó una sesión de checkout.';
     }
   } catch (err) {
-    console.error('Error al procesar checkout:', err);
+    error.value = err.message;
   } finally {
     procesando.value = false;
   }

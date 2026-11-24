@@ -30,7 +30,7 @@ describe('Módulo comercial del propietario — smoke de compilación y normaliz
   });
 
   test('las rutas provisionales del contrato comercial se exponen', () => {
-    expect(RUTAS_COMERCIALES.indicadores).toContain('/comercial/ingresos/');
+    expect(RUTAS_COMERCIALES.ingresos).toContain('/comercial/ingresos/');
     expect(RUTAS_COMERCIALES.instituciones).toContain('/comercial/instituciones/');
     expect(typeof RUTAS_COMERCIALES.institucionesDetalle).toBe('function');
     expect(RUTAS_COMERCIALES.transacciones).toContain('/comercial/transacciones/');

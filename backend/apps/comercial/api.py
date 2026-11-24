@@ -1,4 +1,5 @@
 import hashlib
+from collections.abc import Mapping
 import re
 from datetime import timedelta
 from django.conf import settings
@@ -153,15 +154,23 @@ class OrdenView(Lectura):
     serializer_class = serializador(m.Orden)
 
 
+class SuscripcionSerializer(serializador(m.Suscripcion)):
+    plan_nombre = serializers.CharField(source='orden.condiciones.nombre', read_only=True)
+    modalidad = serializers.CharField(source='orden.condiciones.modalidad', read_only=True)
+    importe = serializers.DecimalField(source='orden.importe', max_digits=12, decimal_places=2, read_only=True)
+    moneda = serializers.CharField(source='orden.moneda', read_only=True)
+    tenant = serializers.UUIDField(source='orden.tenant_id', read_only=True)
+
+
 class SuscripcionView(Lectura):
-    queryset = m.Suscripcion.objects.all()
-    serializer_class = serializador(m.Suscripcion)
+    queryset = m.Suscripcion.objects.select_related('orden')
+    serializer_class = SuscripcionSerializer
     tenant_path = 'orden__tenant'
 
     @action(detail=True,methods=['post'])
     def cancelar(self, request, pk=None):
         with transaction.atomic():
-            sub = self.get_queryset().select_for_update().get(pk=self.get_object().pk)
+            sub = self.get_queryset().select_related(None).select_for_update().get(pk=self.get_object().pk)
             if sub.estado == 'canceled': return Response(self.get_serializer(sub).data)
             if sub.orden.proveedor == 'stripe':
                 stripe = s.stripe_api()
@@ -257,14 +266,40 @@ class EventoView(Lectura):
     solo_propietario = True
 
 
-class CheckoutInput(serializers.Serializer):
+class CotizacionInput(serializers.Serializer):
     precio = serializers.UUIDField()
     alumnos = serializers.IntegerField(min_value=1,max_value=1000000,default=1)
     contrato = serializers.UUIDField(required=False)
 
     def to_internal_value(self,data):
-        if set(data) - set(self.fields): raise ValidationError({'non_field_errors':['Campos de compra desconocidos; importe calculado por servidor.']})
+        if isinstance(data, Mapping) and set(data) - set(self.fields): raise ValidationError({'non_field_errors':['Campos de compra desconocidos; importe calculado por servidor.']})
         return super().to_internal_value(data)
+
+
+class CheckoutInput(CotizacionInput):
+    importe_esperado = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    moneda_esperada = serializers.CharField(max_length=3, required=False)
+
+    def validate(self, attrs):
+        if ('importe_esperado' in attrs) != ('moneda_esperada' in attrs):
+            raise ValidationError('Envía importe y moneda juntos.')
+        return attrs
+
+
+@extend_schema(request=CotizacionInput, responses=inline_serializer(name='CotizacionComercial', fields={
+    'base': serializers.DecimalField(max_digits=12, decimal_places=2),
+    'cuota_alumnos': serializers.DecimalField(max_digits=12, decimal_places=2),
+    'total': serializers.DecimalField(max_digits=12, decimal_places=2),
+    'moneda': serializers.CharField(),
+}))
+@api_view(['POST'])
+def cotizacion(request):
+    input_data = CotizacionInput(data=request.data)
+    input_data.is_valid(raise_exception=True)
+    datos = input_data.validated_data
+    precio, _, importe = s.cotizar(tenant_actual(request), datos['precio'], datos['alumnos'], datos.get('contrato'))
+    return Response(dict(base=str(precio.importe), cuota_alumnos=str(importe - precio.importe),
+                         total=str(importe), moneda=precio.moneda))
 
 
 @extend_schema(request=CheckoutInput, responses=inline_serializer(name='CheckoutResultado',fields={
@@ -274,7 +309,8 @@ def checkout(request):
     datos = CheckoutInput(data=request.data); datos.is_valid(raise_exception=True)
     clave = request.headers.get('Idempotency-Key','')
     if not re.fullmatch(r'[A-Za-z0-9_-]{8,100}',clave): raise ValidationError('Idempotency-Key requerido (8-100 caracteres).')
-    orden = s.checkout(tenant_actual(request),datos.validated_data['precio'],datos.validated_data['alumnos'],datos.validated_data.get('contrato'),clave)
+    orden = s.checkout(tenant_actual(request),datos.validated_data['precio'],datos.validated_data['alumnos'],datos.validated_data.get('contrato'), clave,
+                       datos.validated_data.get('importe_esperado'), datos.validated_data.get('moneda_esperada'))
     return Response(dict(orden=str(orden.id),proveedor=orden.proveedor,url=orden.url or None,estado=orden.estado),status=201)
 
 
@@ -290,6 +326,23 @@ class DemoInput(serializers.Serializer):
     referencia = serializers.RegexField(r'^demo_[A-Za-z0-9_-]{8,150}$')
 
 
+class OrdenDemoPendienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = m.Orden
+        fields = ['id', 'tenant', 'condiciones', 'importe', 'moneda']
+
+
+@extend_schema(responses=OrdenDemoPendienteSerializer(many=True))
+@api_view(['GET'])
+def ordenes_demo_pendientes(request):
+    if not propietario(request.user):
+        raise PermissionDenied()
+    ordenes = m.Orden.objects.none()
+    if settings.COMMERCIAL_PROVIDER == 'DEMO':
+        ordenes = m.Orden.objects.filter(proveedor='DEMO', estado='pending').order_by('-creado')[:30]
+    return Response(OrdenDemoPendienteSerializer(ordenes, many=True).data)
+
+
 @extend_schema(request=DemoInput,responses=inline_serializer(name='DemoConfirmacion',fields={'transaccion':serializers.UUIDField(),'proveedor':serializers.CharField()}))
 @api_view(['POST'])
 def demo(request):
@@ -297,9 +350,18 @@ def demo(request):
     datos = DemoInput(data=request.data); datos.is_valid(raise_exception=True)
     datos = datos.validated_data
     from django.shortcuts import get_object_or_404
-    orden = get_object_or_404(m.Orden,pk=datos['orden'],proveedor='DEMO')
-    fin = timezone.now()+timedelta(days=30 if orden.condiciones['modalidad'] in ('monthly','hybrid') else orden.condiciones['dias'])
-    tx = s.confirmar(orden.id,datos['referencia'],datos['resultado'],orden.importe,orden.moneda,'DEMO',fin=fin,suscripcion='demo_sub_'+str(orden.id))
+    with transaction.atomic():
+        orden = get_object_or_404(m.Orden.objects.select_for_update(), pk=datos['orden'], proveedor='DEMO')
+        if orden.estado == 'paid':
+            tx = m.Transaccion.objects.filter(orden=orden, proveedor='DEMO', referencia=datos['referencia'],
+                                              estado=datos['resultado']).first()
+            if tx is None:
+                raise ValidationError('La orden DEMO ya está pagada.')
+        else:
+            fin = timezone.now() + timedelta(days=30 if orden.condiciones['modalidad'] in ('monthly', 'hybrid')
+                                             else orden.condiciones['dias'])
+            tx = s.confirmar(orden.id, datos['referencia'], datos['resultado'], orden.importe, orden.moneda,
+                             'DEMO', fin=fin, suscripcion='demo_sub_' + str(orden.id))
     return Response({'transaccion':str(tx.id),'proveedor':'DEMO'})
 
 

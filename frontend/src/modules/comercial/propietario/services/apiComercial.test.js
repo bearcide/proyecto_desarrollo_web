@@ -97,7 +97,7 @@ describe('Servicio comercial del propietario — consultas del panel', () => {
         return { data: { count: 2, next: null, previous: null, results: [{ id: 't1' }, { id: 't2' }] } };
       }
       if (url === RUTAS_COMERCIALES.suscripciones) {
-        return { data: { count: 1, next: null, previous: null, results: [{ id: 'sub-1', estado: 'active', orden: 'ord-1' }] } };
+        return { data: { count: 1, next: null, previous: null, results: [{ id: 'sub-1', estado: 'active', orden: 'ord-1', tenant: 't1' }] } };
       }
       if (url === RUTAS_COMERCIALES.licencias) {
         return { data: { count: 1, next: null, previous: null, results: [{ id: 'lic-1', estado: 'active', fin: '2099-01-01T00:00:00Z' }] } };
@@ -118,10 +118,12 @@ describe('Servicio comercial del propietario — consultas del panel', () => {
 
     expect(indicadores.institucionesRegistradas).toBe(2);
     expect(indicadores.suscripcionesActivas).toBe(1);
+    expect(indicadores.institucionesContratantes).toBe(1);
     expect(indicadores.licenciasVigentes).toBe(1);
     expect(indicadores.pagosPendientes).toBe(0);
     expect(indicadores.contratosVencidos).toBe(0);
-    expect(indicadores.ingresosRegistrados).toBe(100);
+    expect(api.get).toHaveBeenCalledWith('/comercial/ingresos/', { params: {} });
+    expect(indicadores.ingresosDetalle).toEqual([{ proveedor: 'DEMO', moneda: 'MXN', total: '100.00' }]);
   });
 
   it('consulta el listado de instituciones (clientes comerciales)', async () => {
@@ -182,7 +184,7 @@ describe('Servicio comercial del propietario — consultas del panel', () => {
     comercialService.getLicencias.mockResolvedValueOnce({
       count: 2,
       results: [
-        { id: 'lic-1', estado: 'active', orden: 'ord-1' },
+        { id: 'lic-1', estado: 'active', orden: 'ord-1', tenant: 't1' },
         { id: 'lic-2', estado: 'revoked', orden: 'ord-2' },
       ],
     });

@@ -68,6 +68,14 @@ const router = createRouter({
       component: LoginView,
     },
     {
+      path: '/contratacion/exito',
+      redirect: (to) => ({ name: 'admin-comercial-checkout-resultado', query: { ...to.query, retorno: 'exito' } }),
+    },
+    {
+      path: '/contratacion/cancelado',
+      redirect: (to) => ({ name: 'admin-comercial-checkout-resultado', query: { ...to.query, retorno: 'cancelado' } }),
+    },
+    {
       path: '/admin',
       component: AdminLayout,
       meta: { requiereAdmin: true },

@@ -36,10 +36,10 @@
 
       <span class="badge badge-success status-pill">Pago Confirmado por Django</span>
       <h1 class="result-title">¡Contratación Exitosa y Acreditada!</h1>
-      <p class="result-desc">
-        Tu transacción ha sido validada oficialmente por los sistemas de pago y tu institución cuenta con
-        las funcionalidades y cupos contratados de forma inmediata.
+      <p v-if="orden.proveedor === 'DEMO'" class="result-desc">
+        El propietario confirmó esta orden de demostración. No se efectuó un cargo bancario.
       </p>
+      <p v-else class="result-desc">El servidor recibió la confirmación del pago de Stripe Sandbox.</p>
 
       <div class="order-receipt-box">
         <div class="receipt-header">
@@ -54,11 +54,11 @@
           </div>
           <div class="receipt-item">
             <span class="label">Importe Acreditado:</span>
-            <span class="val font-bold text-success">{{ formatearMoneda(orden.importe) }} MXN</span>
+            <span class="val font-bold text-success">{{ formatearMoneda(orden.importe, orden.moneda) }}</span>
           </div>
           <div class="receipt-item">
-            <span class="label">Capacidad de Alumnos:</span>
-            <span class="val">{{ orden.cantidad_alumnos }} alumnos autorizados</span>
+            <span class="label">Alumnos en la cotización:</span>
+            <span class="val">{{ orden.alumnos }} alumnos</span>
           </div>
           <div class="receipt-item">
             <span class="label">Proveedor de Cobro:</span>
@@ -79,13 +79,18 @@
           @click="abrirModalFactura"
         >
           <AppIcon name="file-text" size="16" />
-          <span>Solicitar Factura Fiscal (CFDI)</span>
+          <span>Registrar solicitud fiscal</span>
         </button>
 
         <router-link to="/admin/dashboard" class="btn btn-outline">
           <span>Ir al Dashboard Escolar</span>
         </router-link>
       </div>
+    </div>
+
+    <div v-else-if="errorConsulta" class="alert alert-danger" role="alert">
+      <p>{{ errorConsulta }}</p>
+      <button class="btn btn-secondary" :disabled="reconsultando" @click="verificarEstado">Reintentar consulta</button>
     </div>
 
     <!-- Estado 2: PENDIENTE DE CONFIRMACIÓN (pending) -->
@@ -97,6 +102,7 @@
       <span class="badge badge-warning status-pill">Pendiente de Confirmación</span>
       <h1 class="result-title">Transacción en Espera de Acreditación</h1>
       <p class="result-desc">
+        <span v-if="route.query.retorno === 'cancelado'">Regresaste de Stripe sin completar el checkout. </span>
         La orden <strong>#{{ orden.id.substring(0, 8) }}…</strong> fue registrada en el backend.
         Estamos a la espera de la confirmación asíncrona del proveedor bancario (Stripe Webhook)
         o la aprobación del operador de la plataforma.
@@ -121,15 +127,6 @@
           <span>{{ reconsultando ? 'Reconsultando…' : 'Volver a Consultar Estado' }}</span>
         </button>
 
-        <button
-          v-if="orden.proveedor === 'DEMO'"
-          type="button"
-          class="btn btn-secondary"
-          @click="simularAprobacionDemo"
-        >
-          <AppIcon name="check-circle" size="16" />
-          <span>Simular Aprobación del Operador (Sandbox)</span>
-        </button>
 
         <router-link to="/admin/comercial/suscripcion" class="btn btn-outline">
           <span>Ir al Panel de Suscripciones</span>
@@ -146,7 +143,7 @@
       <span class="badge badge-danger status-pill">Transacción No Completada</span>
       <h1 class="result-title">No se pudo procesar la contratación</h1>
       <p class="result-desc">
-        La orden fue declinada por la pasarela de pagos o cancelada por el usuario.
+        El servidor registró el fallo de esta orden.
         No se realizó ningún cobro a tu cuenta institucional.
       </p>
 
@@ -175,56 +172,55 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import AppIcon from '../../../../components/AppIcon.vue';
 import EstadoPagoBadge from '../components/EstadoPagoBadge.vue';
 import FacturacionModal from '../components/FacturacionModal.vue';
 import { useComercial } from '../composables/useComercial';
-import { comercialService } from '../api/comercialService';
 import { formatearMoneda } from '../domain/comercialCalculos';
-import { useNotificationStore } from '../../../../stores/notification';
 
 const route = useRoute();
-const notifStore = useNotificationStore();
 const { consultarOrden, enviarSolicitudFactura } = useComercial();
 
 const ordenId = ref('');
 const orden = ref(null);
+const errorConsulta = ref('');
 const verificando = ref(true);
 const reconsultando = ref(false);
 
 const modalFacturaAbierto = ref(false);
 const enviandoFactura = ref(false);
 
-onMounted(async () => {
-  ordenId.value = route.query.orden_id || '';
+watch(() => route.query.orden_id, async (valor) => {
+  ordenId.value = typeof valor === 'string' ? valor : '';
+  orden.value = null;
+  errorConsulta.value = '';
+  reconsultando.value = false;
+  verificando.value = Boolean(ordenId.value);
   if (ordenId.value) {
     await verificarEstado();
-  } else {
-    verificando.value = false;
   }
-});
+}, { immediate: true });
 
 async function verificarEstado() {
-  if (!ordenId.value) return;
+  const id = ordenId.value;
+  if (!id) return;
   reconsultando.value = true;
+  errorConsulta.value = '';
   try {
-    const data = await consultarOrden(ordenId.value);
-    orden.value = data;
+    const data = await consultarOrden(id);
+    if (ordenId.value === id) orden.value = data;
   } catch (err) {
-    console.error('Error al consultar estado de orden:', err);
+    if (ordenId.value === id) {
+      orden.value = null;
+      errorConsulta.value = err.message;
+    }
   } finally {
-    verificando.value = false;
-    reconsultando.value = false;
-  }
-}
-
-function simularAprobacionDemo() {
-  if (orden.value?.id) {
-    comercialService.marcarOrdenDemoPagada(orden.value.id);
-    orden.value.estado = 'paid';
-    notifStore.success('Orden aprobada en simulación Sandbox DEMO.');
+    if (ordenId.value === id) {
+      verificando.value = false;
+      reconsultando.value = false;
+    }
   }
 }
 

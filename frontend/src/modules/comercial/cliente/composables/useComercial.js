@@ -67,6 +67,10 @@ export function useComercial() {
       if (listaComprobantes.status === 'fulfilled') comprobantes.value = listaComprobantes.value;
       if (listaFacturas.status === 'fulfilled') facturas.value = listaFacturas.value;
       if (listaContratos.status === 'fulfilled') contratos.value = listaContratos.value;
+      const fallos = [datosAcceso, listaSuscripciones, listaLicencias, listaTransacciones, listaComprobantes, listaFacturas, listaContratos];
+      if (fallos.some((resultado) => resultado.status === 'rejected')) {
+        error.value = 'Parte del estado comercial no pudo consultarse. Actualiza para reintentar.';
+      }
     } catch (err) {
       error.value = err.message || 'Error al consultar estado comercial de la institución.';
       notifStore.error(error.value);
@@ -84,16 +88,11 @@ export function useComercial() {
     return precios.value.find((p) => p.plan === planId && p.modalidad === modalidad && p.activo);
   }
 
-  async function iniciarCheckout({ precioId, alumnos = 1, contratoId = null }) {
+  async function iniciarCheckout(compra) {
     cargando.value = true;
     error.value = null;
     try {
-      const sesion = await comercialService.crearCheckout({
-        precioId,
-        alumnos,
-        contratoId,
-      });
-      return sesion;
+      return await comercialService.crearCheckout(compra);
     } catch (err) {
       error.value = err.message || 'Error al iniciar checkout.';
       notifStore.error(error.value);

@@ -8,7 +8,7 @@
         </div>
         <h1 class="page-title">Personaliza la Contratación de tu Escuela</h1>
         <p class="page-subtitle">
-          Ajusta el volumen de alumnos, número de planteles y módulos requeridos.
+          Selecciona un plan, una modalidad y la cantidad de alumnos.
           El precio final será calculado y sellado de forma inmutable por el backend (Django).
         </p>
       </div>
@@ -106,7 +106,7 @@
           <div class="section-title-row">
             <span class="step-num">3</span>
             <div>
-              <h2 class="section-title">Volumen de Alumnos y Planteles</h2>
+              <h2 class="section-title">Volumen de alumnos</h2>
               <p class="section-desc">Determina el límite operativo de matrículas concurrentes.</p>
             </div>
           </div>
@@ -125,7 +125,7 @@
                     v-model.number="cantidadAlumnos"
                     type="number"
                     min="1"
-                    :max="planSeleccionado ? planSeleccionado.max_alumnos * 2 : 20000"
+                    :max="planSeleccionado ? planSeleccionado.max_alumnos : 20000"
                     class="number-input"
                   />
                   <span class="number-unit">alumnos</span>
@@ -136,85 +136,32 @@
                 id="slider-alumnos"
                 v-model.number="cantidadAlumnos"
                 type="range"
-                min="50"
+                min="1"
                 :max="planSeleccionado ? planSeleccionado.max_alumnos : 10000"
-                step="25"
+                step="1"
                 class="range-slider"
               />
 
               <div class="slider-marks">
-                <span>50</span>
+                <span>1</span>
                 <span>{{ (planSeleccionado?.max_alumnos / 2) || 2500 }}</span>
                 <span>{{ planSeleccionado?.max_alumnos || 5000 }} alumnos</span>
               </div>
             </div>
 
-            <!-- Selector Planteles -->
-            <div class="control-block">
-              <div class="control-label-row">
-                <label for="select-planteles" class="control-label">
-                  <AppIcon name="building" size="16" />
-                  <span>Número de planteles o sedes a operar:</span>
-                </label>
-                <div class="number-input-pill">
-                  <select id="select-planteles" v-model.number="cantidadPlanteles" class="select-inline">
-                    <option v-for="n in 10" :key="n" :value="n">
-                      {{ n }} {{ n === 1 ? 'Campus / Plantel' : 'Planteles / Sedes' }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-              <p class="text-xs text-muted" style="margin-top: 0.25rem;">
-                Cada sede adicional cuenta con base de datos sincronizada y permisos independientes por director.
-              </p>
-            </div>
           </div>
         </section>
-
-        <!-- 4. Módulos & Add-ons Opcionales -->
-        <section class="card config-section">
-          <div class="section-title-row">
-            <span class="step-num">4</span>
-            <div>
-              <h2 class="section-title">Módulos Especiales y Soporte</h2>
-              <p class="section-desc">Habilita capacidades de integración y garantías de servicio.</p>
-            </div>
-          </div>
-
-          <div class="addons-list">
-            <label
-              v-for="addon in catalogoAddOns"
-              :key="addon.id"
-              class="addon-card"
-              :class="{ active: addOnsSeleccionados.includes(addon.id) }"
-            >
-              <input
-                type="checkbox"
-                :value="addon.id"
-                v-model="addOnsSeleccionados"
-                class="addon-checkbox"
-              />
-              <div class="addon-info">
-                <div class="addon-title-row">
-                  <span class="addon-name">{{ addon.nombre }}</span>
-                  <span class="addon-cost">+ {{ formatearMoneda(addon.costo) }} MXN</span>
-                </div>
-                <p class="addon-desc">{{ addon.descripcion }}</p>
-              </div>
-            </label>
-          </div>
-        </section>
+        <p class="text-muted text-sm">Los planteles adicionales y los módulos extra aún no están disponibles para contratación.</p>
       </div>
 
       <!-- Columna Lateral: Resumen de Cotización -->
       <aside class="config-sidebar">
+        <p v-if="errorCotizacion" class="alert alert-danger" role="alert">{{ errorCotizacion }}</p>
         <CotizadorSummary
           :plan="planSeleccionado"
           :precio="precioSeleccionado"
           :alumnos="cantidadAlumnos"
-          :planteles="cantidadPlanteles"
-          :add-ons="addOnsObjetos"
-          :cargando="cargandoCheckout"
+          :cotizacion="cotizacion"
           @proceder-checkout="irACheckout"
         />
       </aside>
@@ -223,13 +170,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppIcon from '../../../../components/AppIcon.vue';
 import ModalidadBadge from '../components/ModalidadBadge.vue';
 import CotizadorSummary from '../components/CotizadorSummary.vue';
 import { useComercial } from '../composables/useComercial';
-import { formatearMoneda, MODALIDADES } from '../domain/comercialCalculos';
+import { comercialService } from '../api/comercialService';
+import { formatearMoneda, MODALIDADES, generarIdempotencyKey } from '../domain/comercialCalculos';
 
 const route = useRoute();
 const router = useRouter();
@@ -237,34 +185,30 @@ const { planes, precios, error, cargarCatalogo } = useComercial();
 
 const planSeleccionado = ref(null);
 const precioSeleccionado = ref(null);
-const cantidadAlumnos = ref(500);
-const cantidadPlanteles = ref(1);
-const addOnsSeleccionados = ref([]);
-const cargandoCheckout = ref(false);
+const cantidadAlumnos = ref(1);
+const cotizacion = ref(null);
+const errorCotizacion = ref('');
 
-const catalogoAddOns = [
-  {
-    id: 'api_webhooks',
-    nombre: 'API REST Escolar & Webhooks en Tiempo Real',
-    descripcion: 'Conectividad bidireccional con tu ERP administrativo, Banner, SAP o Moodle.',
-    costo: 3500.0,
-  },
-  {
-    id: 'sla_999',
-    nombre: 'SLA Empresarial 99.9% & Teléfono de Emergencia',
-    descripcion: 'Garantía de respuesta técnica en menos de 15 minutos en días de inscripción masiva.',
-    costo: 4900.0,
-  },
-  {
-    id: 'migracion_asistida',
-    nombre: 'Servicio de Migración y Validación de Planes de Estudio',
-    descripcion: 'Ingeniero asignado para modelar el grafo curricular y verificar prerrequisitos.',
-    costo: 6000.0,
-  },
-];
+watch([precioSeleccionado, cantidadAlumnos], async ([precio, alumnos], _, onCleanup) => {
+  let vigente = true;
+  onCleanup(() => { vigente = false; });
+  cotizacion.value = null;
+  errorCotizacion.value = '';
+  if (!precio) return;
+  if (!Number.isInteger(alumnos) || alumnos < 1 || alumnos > planSeleccionado.value.max_alumnos) {
+    errorCotizacion.value = 'Ingresa una cantidad dentro del límite del plan.';
+    return;
+  }
+  try {
+    const datos = await comercialService.cotizar({ precioId: precio.id, alumnos, contratoId: route.query.contrato_id });
+    if (vigente) cotizacion.value = datos;
+  } catch (err) {
+    if (vigente) errorCotizacion.value = err.message;
+  }
+});
 
 onMounted(async () => {
-  await cargarCatalogo();
+  try { await cargarCatalogo(); } catch { return; }
 
   // Preseleccionar si viene por query param
   const planIdQuery = route.query.plan_id;
@@ -283,6 +227,7 @@ onMounted(async () => {
 
 function seleccionarPlan(plan) {
   planSeleccionado.value = plan;
+  cantidadAlumnos.value = Math.min(Number(cantidadAlumnos.value) || 1, plan.max_alumnos);
   actualizarPrecioPorDefecto();
 }
 
@@ -319,16 +264,12 @@ function actualizarPrecioPorDefecto(precioIdPref, modalidadPref) {
     preciosDisponibles.value[0];
 }
 
-const addOnsObjetos = computed(() => {
-  return catalogoAddOns.filter((a) => addOnsSeleccionados.value.includes(a.id));
-});
-
 function obtenerDescripcionModalidad(modalidad) {
   return MODALIDADES[modalidad]?.descripcion || 'Modalidad de contratación.';
 }
 
 function irACheckout() {
-  if (!planSeleccionado.value || !precioSeleccionado.value) return;
+  if (!planSeleccionado.value || !precioSeleccionado.value || !cotizacion.value) return;
 
   router.push({
     path: '/admin/comercial/checkout',
@@ -336,7 +277,8 @@ function irACheckout() {
       plan_id: planSeleccionado.value.id,
       precio_id: precioSeleccionado.value.id,
       alumnos: cantidadAlumnos.value,
-      planteles: cantidadPlanteles.value,
+      contrato_id: route.query.contrato_id,
+      intento: generarIdempotencyKey(),
     },
   });
 }
@@ -587,16 +529,6 @@ function irACheckout() {
   margin-left: 0.25rem;
 }
 
-.select-inline {
-  border: none;
-  background: transparent;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-main);
-  padding: 0.25rem;
-  cursor: pointer;
-}
-
 .range-slider {
   width: 100%;
   accent-color: var(--primary);
@@ -613,71 +545,6 @@ function irACheckout() {
 }
 
 /* 4. Addons list */
-.addons-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.addon-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.addon-card:hover {
-  background: var(--bg-surface);
-}
-
-.addon-card.active {
-  border-color: var(--primary-border);
-  background: var(--primary-light);
-}
-
-.addon-checkbox {
-  margin-top: 0.25rem;
-  accent-color: var(--primary);
-  width: 18px;
-  height: 18px;
-}
-
-.addon-info {
-  flex: 1;
-}
-
-.addon-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
-}
-
-.addon-name {
-  font-weight: 700;
-  font-size: 0.88rem;
-  color: var(--text-main);
-}
-
-.addon-cost {
-  font-weight: 800;
-  font-size: 0.85rem;
-  color: var(--primary);
-  white-space: nowrap;
-}
-
-.addon-desc {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin: 0;
-  line-height: 1.4;
-}
-
 .config-sidebar {
   position: relative;
 }

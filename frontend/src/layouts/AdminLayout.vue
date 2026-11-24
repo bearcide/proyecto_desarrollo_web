@@ -132,7 +132,7 @@
 
       <div class="sidebar-footer">
         <div class="user-profile-badge">
-          <div class="user-avatar">AD</div>
+          <div class="user-avatar">{{ inicialesAdmin }}</div>
           <div class="user-details">
             <span class="user-name">{{ authStore.matriculaOId || 'Admin' }}</span>
             <span class="user-role">Administrador</span>
@@ -205,7 +205,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationStore } from '../stores/notification';
@@ -219,6 +219,17 @@ const router = useRouter();
 const { esPropietario } = usePermisosComerciales();
 
 const sidebarAbierto = ref(false);
+
+const inicialesAdmin = computed(() => {
+  const identificador = String(authStore.matriculaOId ?? '').trim();
+  if (!identificador) return 'AD';
+
+  const [primeraParte, segundaParte] = identificador.split(/\s+/);
+  return (segundaParte
+    ? primeraParte[0] + segundaParte[0]
+    : primeraParte.slice(0, 2)
+  ).toUpperCase();
+});
 
 function cerrarSesion() {
   authStore.logout();

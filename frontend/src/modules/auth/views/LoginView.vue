@@ -139,7 +139,7 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth';
 import { useNotificationStore } from '../../../stores/notification';
 import { obtenerMensajeError } from '../../../api';
@@ -148,6 +148,7 @@ import ThemeToggle from '../../../components/ThemeToggle.vue';
 const authStore = useAuthStore();
 const notifStore = useNotificationStore();
 const router = useRouter();
+const route = useRoute();
 
 const matricula = ref('');
 const password = ref('');
@@ -189,7 +190,12 @@ async function handleLogin() {
     notifStore.success(`Bienvenido a ${authStore.nombreEscuela}`);
 
     // Redirección condicionada por el rol verificado en Django
-    if (res.es_administrador) {
+    const retorno = typeof route.query.redirect === 'string'
+      ? router.resolve(route.query.redirect)
+      : null;
+    if (res.es_administrador && retorno?.name === 'admin-comercial-checkout-resultado') {
+      router.push({ name: retorno.name, query: retorno.query });
+    } else if (res.es_administrador) {
       router.push('/admin/dashboard');
     } else if (res.es_alumno) {
       router.push('/alumno/horario');
