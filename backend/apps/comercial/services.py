@@ -1,6 +1,7 @@
 """Operaciones financieras: snapshots, bloqueo de filas y confirmación del proveedor."""
 from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
@@ -32,32 +33,44 @@ def contrato_valido(contrato):
     return contrato.estado == 'active' and contrato.inicio <= now and (contrato.fin is None or contrato.fin > now)
 
 
+def cotizar(tenant, precio_id, alumnos, contrato_id):
+    try:
+        precio = Precio.objects.select_related('plan').get(pk=precio_id, activo=True, plan__activo=True)
+    except Precio.DoesNotExist:
+        raise ValidationError('Precio no disponible.')
+    contrato = None
+    if contrato_id:
+        contrato = Contrato.objects.filter(pk=contrato_id, tenant=tenant, precio=precio).first()
+        if not contrato or not contrato_valido(contrato):
+            raise ValidationError('Contrato no vigente o ajeno a la institución.')
+    if precio.modalidad == 'enterprise' and not contrato:
+        raise ValidationError('La modalidad empresarial requiere contrato vigente.')
+    if alumnos > precio.plan.max_alumnos:
+        raise ValidationError('Cantidad superior al límite del plan.')
+    importe = (precio.importe + precio.por_alumno * alumnos).quantize(Decimal('0.01'))
+    if importe > Decimal('9999999.99'):
+        raise ValidationError('Importe fuera de rango.')
+    return precio, contrato, importe
+
+
+def validar_importe(importe, moneda, importe_esperado, moneda_esperada):
+    if importe_esperado is not None and (importe != importe_esperado or moneda != moneda_esperada):
+        raise ErrorIdentidad('price_changed', 'El importe cambió. Vuelve a consultar la cotización.', 409)
+
+
 @transaction.atomic
-def preparar_orden(tenant, precio_id, alumnos, contrato_id, clave):
+def preparar_orden(tenant, precio_id, alumnos, contrato_id, clave, importe_esperado=None, moneda_esperada=None):
     # Lock the tenant too: concurrent first requests cannot both create an order.
     type(tenant).objects.select_for_update().get(pk=tenant.pk)
     anterior = Orden.objects.select_for_update().filter(tenant=tenant, clave=clave).first()
     if anterior:
         if str(anterior.precio_id) != str(precio_id) or anterior.alumnos != alumnos or str(anterior.contrato_id or '') != str(contrato_id or ''):
             raise ErrorIdentidad('idempotency_conflict', 'La clave ya pertenece a otra compra.', 409)
+        validar_importe(anterior.importe, anterior.moneda, importe_esperado, moneda_esperada)
         orden = anterior
     else:
-        try:
-            precio = Precio.objects.select_related('plan').get(pk=precio_id, activo=True, plan__activo=True)
-        except Precio.DoesNotExist:
-            raise ValidationError('Precio no disponible.')
-        contrato = None
-        if contrato_id:
-            contrato = Contrato.objects.filter(pk=contrato_id, tenant=tenant, precio=precio).first()
-            if not contrato or not contrato_valido(contrato):
-                raise ValidationError('Contrato no vigente o ajeno a la institución.')
-        if precio.modalidad == 'enterprise' and not contrato:
-            raise ValidationError('La modalidad empresarial requiere contrato vigente.')
-        if alumnos > precio.plan.max_alumnos:
-            raise ValidationError('Cantidad superior al límite del plan.')
-        importe = (precio.importe + precio.por_alumno * alumnos).quantize(Decimal('0.01'))
-        if importe > Decimal('9999999.99'):
-            raise ValidationError('Importe fuera de rango.')
+        precio, contrato, importe = cotizar(tenant, precio_id, alumnos, contrato_id)
+        validar_importe(importe, precio.moneda, importe_esperado, moneda_esperada)
         if settings.COMMERCIAL_PROVIDER not in ('DEMO', 'stripe'):
             raise ProveedorNoDisponible()
         orden = Orden.objects.create(tenant=tenant, precio=precio, contrato=contrato,
@@ -69,9 +82,16 @@ def preparar_orden(tenant, precio_id, alumnos, contrato_id, clave):
     return orden
 
 
-def checkout(tenant, precio_id, alumnos, contrato_id, clave):
-    orden = preparar_orden(tenant, precio_id, alumnos, contrato_id, clave)
+def checkout(tenant, precio_id, alumnos, contrato_id, clave, importe_esperado=None, moneda_esperada=None):
+    orden = preparar_orden(tenant, precio_id, alumnos, contrato_id, clave, importe_esperado, moneda_esperada)
     return abrir_checkout(orden.id)
+
+
+def url_retorno(url, orden_id, retorno):
+    partes = urlsplit(url)
+    params = dict(parse_qsl(partes.query, keep_blank_values=True))
+    params.update(orden_id=str(orden_id), retorno=retorno)
+    return urlunsplit(partes._replace(query=urlencode(params)))
 
 
 @transaction.atomic
@@ -88,7 +108,8 @@ def abrir_checkout(orden_id):
         args = dict(mode='subscription' if recurrente else 'payment',
                     line_items=[{'price_data': price_data, 'quantity': 1}],
                     client_reference_id=str(orden.pk), metadata={'orden': str(orden.pk)},
-                    success_url=settings.COMMERCIAL_SUCCESS_URL, cancel_url=settings.COMMERCIAL_CANCEL_URL,
+                    success_url=url_retorno(settings.COMMERCIAL_SUCCESS_URL, orden.pk, 'exito'),
+                    cancel_url=url_retorno(settings.COMMERCIAL_CANCEL_URL, orden.pk, 'cancelado'),
                     idempotency_key='comercial-' + str(orden.pk))
         if recurrente:
             args['subscription_data'] = {'metadata': {'orden': str(orden.pk)}}

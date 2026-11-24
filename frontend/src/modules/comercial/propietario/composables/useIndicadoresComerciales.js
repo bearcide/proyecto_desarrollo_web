@@ -13,7 +13,8 @@ export function useIndicadoresComerciales() {
     error.value = null;
 
     try {
-      indicadores.value = normalizarIndicadores(await obtenerIndicadoresComerciales());
+      const datos = await obtenerIndicadoresComerciales();
+      indicadores.value = { ...normalizarIndicadores(datos), ingresosDetalle: datos.ingresosDetalle };
     } catch (err) {
       error.value = err?.response?.status ? `Error ${err.response.status} al cargar los indicadores comerciales.` : 'No pudimos cargar los indicadores comerciales.';
     } finally {

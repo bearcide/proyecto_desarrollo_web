@@ -16,7 +16,9 @@ import { extraerRegistros, normalizarIndicadores, normalizarEstado, normalizarPl
 
 /** Rutas del contrato comercial publicadas (base /api/v1/comercial/). */
 export const RUTAS_COMERCIALES = Object.freeze({
-  indicadores: '/comercial/ingresos/',
+  ingresos: '/comercial/ingresos/',
+  ordenesDemo: '/comercial/demo/pendientes/',
+  confirmarDemo: '/comercial/demo/confirmar/',
   instituciones: '/comercial/instituciones/',
   institucionesDetalle: (id) => `/comercial/instituciones/${id}/`,
   contratos: '/comercial/contratos/',
@@ -38,7 +40,7 @@ async function obtenerLista(url, params = {}) {
 
 /** Indicadores comerciales agregados para el dashboard del propietario. */
 export async function obtenerIndicadoresComerciales() {
-  const resultados = await Promise.allSettled([
+  const resultados = await Promise.all([
     obtenerLista(RUTAS_COMERCIALES.instituciones),
     obtenerLista(RUTAS_COMERCIALES.suscripciones),
     obtenerLista(RUTAS_COMERCIALES.licencias),
@@ -47,13 +49,12 @@ export async function obtenerIndicadoresComerciales() {
     obtenerLista(RUTAS_COMERCIALES.ingresos),
   ]);
 
-  const valor = (indice) => (resultados[indice]?.status === 'fulfilled' ? resultados[indice].value : null);
-  const instituciones = extraerRegistros(valor(0));
-  const suscripciones = extraerRegistros(valor(1));
-  const licencias = extraerRegistros(valor(2));
-  const transacciones = extraerRegistros(valor(3));
-  const contratos = extraerRegistros(valor(4));
-  const ingresos = extraerRegistros(valor(5));
+  const instituciones = extraerRegistros(resultados[0]);
+  const suscripciones = extraerRegistros(resultados[1]);
+  const licencias = extraerRegistros(resultados[2]);
+  const transacciones = extraerRegistros(resultados[3]);
+  const contratos = extraerRegistros(resultados[4]);
+  const ingresos = extraerRegistros(resultados[5]);
 
   const suscripcionesActivas = suscripciones.filter((s) => normalizarEstado(s.estado) === 'ACTIVE');
   const licenciasActivas = licencias.filter((l) => normalizarEstado(l.estado) === 'ACTIVE');
@@ -81,22 +82,28 @@ export async function obtenerIndicadoresComerciales() {
     .map((l) => normalizarLicenciaComercial(l))
     .filter((l) => l.estado === 'ACTIVE' && (l.fechaVencimiento ? esVigente(l.fechaVencimiento, hoy) : true)).length;
 
-  const totalIngresos = ingresos.length > 0
-    ? ingresos.reduce((acumulado, fila) => acumulado + (Number(fila.total) || 0), 0)
-    : transacciones
-        .filter((t) => normalizarEstado(t.estado) === 'PAID')
-        .reduce((acumulado, t) => acumulado + (Number(t.importe) || 0), 0);
-
   return {
     institucionesRegistradas: instituciones.length,
-    institucionesContratantes: suscripcionesActivas.length,
+    institucionesContratantes: new Set(suscripcionesActivas.map((s) => s.tenant).filter(Boolean)).size,
     suscripcionesActivas: suscripcionesActivas.length,
     licenciasVigentes,
-    ingresosRegistrados: totalIngresos,
+    ingresosDetalle: ingresos,
     pagosPendientes: transaccionesPendientes.length,
     contratosVencidos,
     renovacionesProximas,
   };
+}
+
+export async function obtenerOrdenesDemo() {
+  return extraerRegistros(await obtenerLista(RUTAS_COMERCIALES.ordenesDemo));
+}
+
+export async function aprobarOrdenDemo(orden) {
+  await api.post(RUTAS_COMERCIALES.confirmarDemo, {
+    orden,
+    resultado: 'paid',
+    referencia: `demo_${orden}`,
+  });
 }
 
 /** Listado de instituciones (escuelas) con contexto comercial. */
@@ -256,5 +263,5 @@ export async function descargarComprobanteComercial(id) {
   const disposition = String(headers?.['content-disposition'] || '');
   const nombre = /filename[^;]*=([^;]*)/.exec(disposition)?.[1];
   const url = URL.createObjectURL(data);
-  return { url, nombre: nombre ? decodeURIComponent(nombre) : `comprobante-${id}.pdf` };
+  return { url, nombre: nombre ? decodeURIComponent(nombre.replace(/^"|"$/g, '')) : `comprobante-${id}.pdf` };
 }

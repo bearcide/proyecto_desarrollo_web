@@ -54,7 +54,7 @@
               v-model="matricula"
               type="text"
               class="form-input"
-              placeholder="Ej. demo_admin o D001"
+              placeholder="Matrícula o usuario"
               autocomplete="username"
               autocapitalize="none"
               spellcheck="false"
@@ -110,26 +110,20 @@
       </form>
 
       <!-- Accesos rápidos de demostración local -->
-      <div class="demo-helpers">
-        <div class="demo-helpers-title" id="demo-title">Cuentas de demostración rápida</div>
+      <div v-if="demo" class="demo-helpers">
+        <div class="demo-helpers-title" id="demo-title">Accesos rápidos · {{ demo.nombre }}</div>
         <div class="demo-pills" role="group" aria-labelledby="demo-title">
           <button
+            v-for="cuenta in demo.cuentas"
+            :key="cuenta.usuario"
             type="button"
             class="demo-pill"
-            aria-label="Usar cuenta de demostración de administrador, demo_admin"
-            @click="cargarCredenciales('demo_admin', 'DemoLocal2026!')"
+            :disabled="cargando"
+            :aria-label="`Usar cuenta de demostración de ${cuenta.rol.toLowerCase()}, ${cuenta.usuario}`"
+            @click="cargarCredenciales(cuenta.usuario)"
           >
-            <span class="badge badge-indigo">Admin</span>
-            <span>demo_admin</span>
-          </button>
-          <button
-            type="button"
-            class="demo-pill"
-            aria-label="Usar cuenta de demostración de alumno, D001"
-            @click="cargarCredenciales('D001', 'DemoLocal2026!')"
-          >
-            <span class="badge badge-success">Alumno</span>
-            <span>D001</span>
+            <span class="badge" :class="cuenta.estilo">{{ cuenta.rol }}</span>
+            <span>{{ cuenta.usuario }}</span>
           </button>
         </div>
       </div>
@@ -139,7 +133,7 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth';
 import { useNotificationStore } from '../../../stores/notification';
 import { obtenerMensajeError } from '../../../api';
@@ -148,6 +142,33 @@ import ThemeToggle from '../../../components/ThemeToggle.vue';
 const authStore = useAuthStore();
 const notifStore = useNotificationStore();
 const router = useRouter();
+const route = useRoute();
+
+// Cuentas ficticias de los inicializadores locales de Django.
+const modoDemo = import.meta.env.VITE_DEMO_MODE;
+const demo = import.meta.env.DEV
+  && (modoDemo === 'academic' || modoDemo === 'commercial')
+  && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+  ? {
+      academic: {
+        nombre: 'Demo académica',
+        password: 'DemoLocal2026!',
+        cuentas: [
+          { usuario: 'demo_admin', rol: 'Administrador', estilo: 'badge-indigo' },
+          { usuario: 'D001', rol: 'Alumno', estilo: 'badge-success' },
+        ],
+      },
+      commercial: {
+        nombre: 'Demo comercial',
+        password: 'Demo-Pagos-2026!',
+        cuentas: [
+          { usuario: 'admin_demo', rol: 'Administrador', estilo: 'badge-indigo' },
+          { usuario: 'propietario_demo', rol: 'Propietario', estilo: 'badge-indigo' },
+          { usuario: 'alumno_pagos_demo', rol: 'Alumno', estilo: 'badge-success' },
+        ],
+      },
+    }[modoDemo]
+  : null;
 
 const matricula = ref('');
 const password = ref('');
@@ -173,9 +194,9 @@ watch([matricula, password], () => {
   if (errorMsg.value && !cargando.value) errorMsg.value = null;
 });
 
-function cargarCredenciales(u, p) {
-  matricula.value = u;
-  password.value = p;
+function cargarCredenciales(usuario) {
+  matricula.value = usuario;
+  password.value = demo.password;
   errorMsg.value = null;
 }
 
@@ -189,7 +210,12 @@ async function handleLogin() {
     notifStore.success(`Bienvenido a ${authStore.nombreEscuela}`);
 
     // Redirección condicionada por el rol verificado en Django
-    if (res.es_administrador) {
+    const retorno = typeof route.query.redirect === 'string'
+      ? router.resolve(route.query.redirect)
+      : null;
+    if (res.es_administrador && retorno?.name === 'admin-comercial-checkout-resultado') {
+      router.push({ name: retorno.name, query: retorno.query });
+    } else if (res.es_administrador) {
       router.push('/admin/dashboard');
     } else if (res.es_alumno) {
       router.push('/alumno/horario');

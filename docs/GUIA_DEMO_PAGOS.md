@@ -19,7 +19,7 @@ Terminal 2 desde la raíz:
 
 ```bash
 cd frontend
-VITE_API_BASE_URL=http://127.0.0.1:8011/api/v1 npm run dev -- --host 127.0.0.1 --port 5174 --strictPort
+VITE_DEMO_MODE=commercial VITE_API_BASE_URL=http://127.0.0.1:8011/api/v1 npm run dev -- --host 127.0.0.1 --port 5174 --strictPort
 ```
 
 No lanzar una segunda copia si ya están escuchando. Si hay que usar otros puertos, cambiar también la URL API de Vite; para otro puerto de Vue será necesario autorizar su origen en la configuración demo. `--strictPort` evita que Vite cambie el puerto silenciosamente. La API absoluta en `VITE_API_BASE_URL` es necesaria: no hay proxy Vite. La configuración demo admite CORS para 5173 y 5174, ignora `DATABASE_URL`, exige ruta existente absoluta `backend/demo_pagos_*.sqlite3`, fuerza DEMO y vacía las claves Stripe. Su firma JWT es distinta de la demo académica.

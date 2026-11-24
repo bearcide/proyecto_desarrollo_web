@@ -42,25 +42,14 @@
           <AppIcon name="arrow-right" size="16" />
         </button>
 
-        <button
-          v-if="esDesarrollo"
-          type="button"
-          class="btn btn-secondary btn-block sim-btn"
-          @click="simularAprobacion"
-        >
-          <AppIcon name="check-circle" size="16" />
-          <span>Simular Aprobación del Operador (Modo Sandbox)</span>
-        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AppIcon from '../../../../components/AppIcon.vue';
-import { comercialService } from '../api/comercialService';
 
 const props = defineProps({
   abierto: {
@@ -73,10 +62,8 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['cerrar', 'confirmado']);
+const emit = defineEmits(['cerrar']);
 const router = useRouter();
-
-const esDesarrollo = computed(() => true);
 
 function irAResultado() {
   emit('cerrar');
@@ -86,10 +73,6 @@ function irAResultado() {
   });
 }
 
-function simularAprobacion() {
-  comercialService.marcarOrdenDemoPagada(props.ordenId);
-  irAResultado();
-}
 </script>
 
 <style scoped>

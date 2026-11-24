@@ -10,7 +10,7 @@
           type="button"
           class="btn btn-secondary btn-sm"
           :disabled="cargando"
-          @click="cargarIndicadoresComerciales"
+          @click="cargarIndicadores"
         >
           <svg :class="{ spinner: cargando }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           Actualizar indicadores
@@ -24,17 +24,37 @@
 
     <div v-if="error" class="alert alert-danger" role="alert">
       <span>{{ error }}</span>
-      <button type="button" class="btn btn-secondary btn-sm" :disabled="cargando" @click="cargarIndicadoresComerciales">
+      <button type="button" class="btn btn-secondary btn-sm" :disabled="cargando" @click="cargarIndicadores">
         Reintentar
       </button>
     </div>
+
+    <section class="card">
+      <div class="card-header"><h2 class="card-title">Órdenes DEMO pendientes</h2></div>
+      <div class="card-body">
+        <p v-if="errorDemo" role="alert">{{ errorDemo }}</p>
+        <p v-else-if="!ordenesDemo.length">Sin órdenes DEMO pendientes.</p>
+        <div v-for="orden in ordenesDemo" :key="orden.id" class="prioridad-item">
+          <span><strong>{{ orden.condiciones.nombre }}</strong> · {{ formatearMoneda(orden.importe, orden.moneda) }} · <code>{{ orden.id }}</code></span>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            :disabled="procesandoDemo"
+            @click="confirmarDemo(orden.id)"
+          >Aprobar orden DEMO</button>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" :disabled="procesandoDemo" @click="cargarOrdenesDemo">
+          Actualizar órdenes DEMO
+        </button>
+      </div>
+    </section>
 
     <div v-if="cargando" class="empty-state">
       <div class="spinner spinner-primary" style="margin: 0 auto 0.5rem;"></div>
       <span class="text-muted">Cargando indicadores comerciales…</span>
     </div>
 
-    <template v-else>
+    <template v-else-if="!error">
       <!-- Indicadores comerciales (Fase 1) -->
       <div class="stats-grid">
         <div
@@ -85,7 +105,7 @@
               <div class="prioridad-item">
                 <span class="prioridad-texto">
                   <strong>Pagos pendientes</strong>
-                  <span class="text-sm text-muted">Ingresos por conciliar</span>
+                  <span class="text-sm text-muted">Transacciones a la espera de confirmación</span>
                 </span>
                 <span class="prioridad-valor">{{ indicadores.pagosPendientes }}</span>
               </div>
@@ -142,22 +162,53 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useIndicadoresComerciales } from '../composables/useIndicadoresComerciales';
+import { obtenerOrdenesDemo, aprobarOrdenDemo } from '../services/apiComercial';
+import { obtenerMensajeError } from '../../../../api';
 import AppIcon from '../../../../components/AppIcon.vue';
 
 const { indicadores, cargando, error, cargarIndicadores } = useIndicadoresComerciales();
 
-function formatearMoneda(monto) {
+const ordenesDemo = ref([]);
+const procesandoDemo = ref(false);
+const errorDemo = ref('');
+
+async function cargarOrdenesDemo() {
+  procesandoDemo.value = true;
+  errorDemo.value = '';
+  try {
+    ordenesDemo.value = await obtenerOrdenesDemo();
+  } catch (err) {
+    errorDemo.value = obtenerMensajeError(err);
+  } finally {
+    procesandoDemo.value = false;
+  }
+}
+
+async function confirmarDemo(id) {
+  procesandoDemo.value = true;
+  errorDemo.value = '';
+  try {
+    await aprobarOrdenDemo(id);
+    await Promise.all([cargarOrdenesDemo(), cargarIndicadores()]);
+  } catch (err) {
+    errorDemo.value = obtenerMensajeError(err);
+  } finally {
+    procesandoDemo.value = false;
+  }
+}
+
+function formatearMoneda(monto, moneda = 'MXN') {
   try {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: 'MXN',
+      currency: moneda,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(Number(monto) || 0);
   } catch (_) {
-    return `${Number(monto || 0).toFixed(2)} MXN`;
+    return `${Number(monto || 0).toFixed(2)} ${moneda}`;
   }
 }
 
@@ -197,8 +248,10 @@ const tarjetasIndicadores = computed(() => [
   {
     clave: 'ingresosRegistrados',
     etiqueta: 'Ingresos Registrados',
-    valor: cargando.value ? '—' : formatearMoneda(indicadores.value.ingresosRegistrados),
-    subtexto: 'Ingresos acumulados con planes comerciales',
+    valor: indicadores.value.ingresosDetalle?.map((fila) =>
+      `${fila.proveedor === 'DEMO' ? 'DEMO' : 'Stripe Sandbox'}: ${formatearMoneda(fila.total, fila.moneda)} ${fila.moneda}`,
+    ).join(' · ') || 'Sin registros',
+    subtexto: 'Transacciones confirmadas por proveedor y moneda',
     clase: 'stat-blue',
     icono: 'credits',
   },
@@ -206,7 +259,7 @@ const tarjetasIndicadores = computed(() => [
     clave: 'pagosPendientes',
     etiqueta: 'Pagos Pendientes',
     valor: cargando.value ? '—' : indicadores.value.pagosPendientes.toLocaleString('es-MX'),
-    subtexto: 'Pagos pendientes de conciliación',
+    subtexto: 'A la espera de confirmación',
     clase: 'stat-warning',
     icono: 'clock',
   },
@@ -230,6 +283,7 @@ const tarjetasIndicadores = computed(() => [
 
 onMounted(() => {
   cargarIndicadores();
+  cargarOrdenesDemo();
 });
 </script>
 

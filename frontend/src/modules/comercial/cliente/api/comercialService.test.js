@@ -38,13 +38,9 @@ describe('comercialService', () => {
       expect(res).toEqual(mockResults);
     });
 
-    it('utiliza catálogo fallback si el backend está desconectado (sin response)', async () => {
+    it('informa de la desconexión sin inventar un catálogo', async () => {
       api.get.mockRejectedValueOnce(new Error('Network Error'));
-
-      const res = await comercialService.getPlanes();
-      expect(res).toBeDefined();
-      expect(res.length).toBeGreaterThan(0);
-      expect(res.some((p) => p.codigo === 'pro')).toBe(true);
+      await expect(comercialService.getPlanes()).rejects.toThrow('Network Error');
     });
   });
 
@@ -86,6 +82,17 @@ describe('comercialService', () => {
         },
       );
     });
+  });
+
+  it('reintenta el mismo checkout sin generar una orden local', async () => {
+    const compra = { precioId: 'precio-456', alumnos: 3, idempotencyKey: 'intento-original',
+      cotizacion: { total: '107.50', moneda: 'MXN' } };
+    api.post.mockRejectedValueOnce(new Error('Network Error'));
+    await expect(comercialService.crearCheckout(compra)).rejects.toThrow('Network Error');
+    api.post.mockResolvedValueOnce({ data: { orden: 'orden-servidor' } });
+    await expect(comercialService.crearCheckout(compra)).resolves.toEqual({ orden: 'orden-servidor' });
+    expect(api.post.mock.calls[0]).toEqual(api.post.mock.calls[1]);
+    expect(api.post.mock.calls[1][1]).toMatchObject({ importe_esperado: '107.50', moneda_esperada: 'MXN' });
   });
 
   describe('solicitarFactura', () => {

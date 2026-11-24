@@ -43,15 +43,15 @@
 
     <div v-else class="suscripcion-content-grid">
       <!-- 1. Tarjeta de Estado del Plan Actual -->
-      <section class="card main-plan-card">
+      <section v-if="suscripcionPrincipal" class="card main-plan-card">
         <div class="main-plan-header">
           <div>
             <span class="plan-type-label">Plan Institucional Contratado</span>
-            <h2 class="main-plan-name">{{ suscripcionPrincipal?.plan_nombre || acceso?.plan_actual || 'Plan Profesional Campus' }}</h2>
+            <h2 class="main-plan-name">{{ suscripcionPrincipal.plan_nombre || 'Suscripción institucional' }}</h2>
           </div>
           <div class="plan-badges-group">
-            <ModalidadBadge :modalidad="suscripcionPrincipal?.modalidad || acceso?.modalidad || 'annual'" />
-            <EstadoPagoBadge :estado="suscripcionPrincipal?.estado || 'active'" />
+            <ModalidadBadge :modalidad="suscripcionPrincipal.modalidad" />
+            <EstadoPagoBadge :estado="suscripcionPrincipal.estado" />
           </div>
         </div>
 
@@ -66,14 +66,14 @@
           <div class="detail-cell">
             <span class="detail-label">Renovación Automática</span>
             <span class="detail-val" :class="suscripcionPrincipal?.cancel_at_period_end ? 'text-warning font-bold' : 'text-success'">
-              {{ suscripcionPrincipal?.cancel_at_period_end ? 'Cancela al fin de periodo' : 'Activa (Recurrente)' }}
+              {{ suscripcionPrincipal.cancel_at_period_end ? 'Cancela al fin de periodo' : suscripcionPrincipal.estado === 'active' ? 'Programada' : 'Sin renovación activa' }}
             </span>
           </div>
 
           <div class="detail-cell">
             <span class="detail-label">Importe Periodo</span>
             <span class="detail-val font-bold">
-              {{ formatearMoneda(suscripcionPrincipal?.importe || '34990.00') }} MXN
+              {{ formatearMoneda(suscripcionPrincipal.importe, suscripcionPrincipal.moneda) }} {{ suscripcionPrincipal.moneda }}
             </span>
           </div>
         </div>
@@ -91,11 +91,11 @@
         <div class="main-plan-actions">
           <router-link to="/admin/comercial/configurador" class="btn btn-secondary btn-sm">
             <AppIcon name="sliders" size="14" />
-            <span>Ajustar Cupos o Planteles</span>
+            <span>Consultar opciones de contratación</span>
           </router-link>
 
           <button
-            v-if="suscripcionPrincipal && !suscripcionPrincipal.cancel_at_period_end"
+            v-if="suscripcionPrincipal.estado === 'active' && !suscripcionPrincipal.cancel_at_period_end"
             type="button"
             class="btn btn-outline btn-sm text-danger-btn"
             @click="abrirConfirmacionCancelar"
@@ -103,6 +103,10 @@
             <span>Cancelar Renovación Programada</span>
           </button>
         </div>
+      </section>
+
+      <section v-else class="card main-plan-card">
+        <p>{{ error ? 'No se pudo consultar la suscripción.' : 'Sin suscripción registrada.' }}</p>
       </section>
 
       <!-- 2. Límites y Consumo de Acceso Efectivo -->
@@ -119,7 +123,7 @@
               <AppIcon name="user" size="18" class="text-primary" />
             </div>
             <div class="metric-val">
-              <span class="num">{{ acceso?.max_alumnos?.toLocaleString() || '2,500' }}</span>
+              <span class="num">{{ acceso?.max_alumnos?.toLocaleString() ?? '—' }}</span>
               <span class="unit">máximo autorizado</span>
             </div>
           </div>
@@ -130,7 +134,7 @@
               <AppIcon name="building" size="18" class="text-blue" />
             </div>
             <div class="metric-val">
-              <span class="num">{{ acceso?.max_planteles || 3 }}</span>
+              <span class="num">{{ acceso?.max_planteles ?? '—' }}</span>
               <span class="unit">campus central y sedes</span>
             </div>
           </div>
@@ -389,20 +393,14 @@ const suscripcionPrincipal = computed(() => {
   return null;
 });
 
-const listaFuncionalidades = computed(() => {
-  if (Array.isArray(acceso.value?.funcionalidades)) {
-    return acceso.value.funcionalidades;
-  }
-  return [
-    'Gestión de inscripciones',
-    'Matrícula digital',
-    'Horarios automáticos anti-empalme',
-    'Importación CSV',
-  ];
-});
+const listaFuncionalidades = computed(() =>
+  Object.entries(acceso.value?.funcionalidades ?? {})
+    .filter(([, habilitada]) => habilitada)
+    .map(([funcionalidad]) => funcionalidad.replaceAll('_', ' ')),
+);
 
 function formatearFecha(isoString) {
-  if (!isoString) return 'Vigencia activa';
+  if (!isoString) return '—';
   try {
     const d = new Date(isoString);
     return new Intl.DateTimeFormat('es-MX', {

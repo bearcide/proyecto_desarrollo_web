@@ -112,6 +112,16 @@ class ComercialTests(TestCase):
         contrato.fin=timezone.now()-timedelta(hours=1); contrato.save()
         self.assertFalse(s.acceso(self.tenant)['activo'])
 
+    def test_transaccion_expone_comprobante_correspondiente_e_institucion(self):
+        orden = self.orden()
+        pendiente = self.pago(orden, referencia='demo_pendiente_pdf', estado='pending')
+        pagada = self.pago(orden)
+        for transaccion, comprobante in [(pendiente, None), (pagada, str(m.Comprobante.objects.get(transaccion=pagada).pk))]:
+            respuesta = self.client.get(f'/api/v1/comercial/transacciones/{transaccion.pk}/')
+            self.assertEqual(respuesta.status_code, 200)
+            self.assertEqual(respuesta.data['comprobante_id'], comprobante)
+            self.assertEqual(respuesta.data['institucion'], self.tenant.nombre_comercial)
+
     def test_pdf_factura_y_limites(self):
         orden=self.orden(); self.pago(orden)
         comprobante=m.Comprobante.objects.get()
@@ -123,11 +133,38 @@ class ComercialTests(TestCase):
         with self.assertRaises(Exception): s.exigir_capacidad(self.tenant,alumnos=101)
         self.assertEqual(s.exigir_capacidad(self.tenant,alumnos=100)['max_alumnos'],100)
 
+    def test_cotizacion_checkout_y_cambio_de_importe(self):
+        url = '/api/v1/comercial/cotizacion/'
+        payload = {'precio': str(self.precio.id), 'alumnos': 2}
+        cotizacion = self.client.post(url, payload, format='json')
+        self.assertEqual(cotizacion.status_code, 200, cotizacion.data)
+        self.assertEqual(cotizacion.data, {'base': '100.00', 'cuota_alumnos': '5.00',
+                                          'total': '105.00', 'moneda': 'MXN'})
+        self.assertFalse(m.Orden.objects.exists())
+        self.assertEqual(self.client.post(url, {**payload, 'alumnos': 101}, format='json').status_code, 400)
+        self.assertEqual(self.compra(importe_esperado='105.01', moneda_esperada='MXN').status_code, 409)
+        self.assertFalse(m.Orden.objects.exists())
+        primero = self.compra(importe_esperado='105.00', moneda_esperada='MXN')
+        segundo = self.compra(importe_esperado='105.00', moneda_esperada='MXN')
+        self.assertEqual(primero.status_code, 201, primero.data)
+        self.assertEqual(primero.data, segundo.data)
+        self.assertEqual(m.Orden.objects.get().importe, Decimal('105.00'))
+        self.assertFalse(m.Licencia.objects.exists())
+
     def test_demo_solo_propietario(self):
         orden=self.orden(); data={'orden':str(orden.id),'referencia':'demo_prueba_1234','resultado':'paid'}
         self.assertEqual(self.client.post('/api/v1/comercial/demo/confirmar/',data,format='json').status_code,403)
+        pendientes = '/api/v1/comercial/demo/pendientes/'
+        self.assertEqual(self.client.get(pendientes).status_code, 403)
         self.client.force_authenticate(self.root)
+        self.assertEqual([fila['id'] for fila in self.client.get(pendientes).data], [str(orden.id)])
         self.assertEqual(self.client.post('/api/v1/comercial/demo/confirmar/',data,format='json').status_code,200)
+        self.assertEqual(self.client.post('/api/v1/comercial/demo/confirmar/', data, format='json').status_code, 200)
+        self.assertEqual(self.client.post('/api/v1/comercial/demo/confirmar/',
+                                          {**data, 'referencia': 'demo_repetida_0001'}, format='json').status_code, 400)
+        self.assertEqual(self.client.get(pendientes).data, [])
+        self.assertEqual(m.Transaccion.objects.count(), 1)
+        self.assertTrue(s.acceso(self.tenant)['activo'])
 
     @override_settings(COMMERCIAL_PROVIDER='stripe',STRIPE_SECRET_KEY='sk_test_fake',STRIPE_WEBHOOK_SECRET='whsec_test')
     def test_webhook_firmas_duplicados_y_rollback(self):
@@ -154,6 +191,11 @@ class ComercialTests(TestCase):
             self.assertEqual(create.call_count,1)
             self.assertEqual(create.call_args.kwargs['line_items'][0]['price_data']['unit_amount'],10500)
             self.assertEqual(create.call_args.kwargs['mode'],'subscription')
+            for clave, retorno in [('success_url', 'exito'), ('cancel_url', 'cancelado')]:
+                from urllib.parse import urlsplit, parse_qs
+                url = urlsplit(create.call_args.kwargs[clave])
+                self.assertEqual(url.path, '/admin/comercial/checkout/resultado')
+                self.assertEqual(parse_qs(url.query), {'orden_id': [str(orden.id)], 'retorno': [retorno]})
             self.assertFalse(m.Licencia.objects.exists())
             self.assertEqual(orden.sesion,'cs_test')
 

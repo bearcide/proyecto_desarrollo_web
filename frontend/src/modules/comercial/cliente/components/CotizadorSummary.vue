@@ -5,7 +5,7 @@
       <h3 class="summary-title">Resumen de Contratación</h3>
     </div>
 
-    <div v-if="plan && precio" class="summary-body">
+    <div v-if="plan && precio && cotizacion" class="summary-body">
       <div class="summary-plan-badge">
         <span class="plan-tag">{{ plan.nombre }}</span>
         <ModalidadBadge :modalidad="precio.modalidad" />
@@ -14,35 +14,24 @@
       <div class="summary-breakdown">
         <div class="breakdown-row">
           <span class="concept-label">Tarifa base ({{ precio.modalidad }}):</span>
-          <span class="concept-val">{{ formatearMoneda(desglose.base, desglose.moneda) }}</span>
+          <span class="concept-val">{{ formatearMoneda(cotizacion.base, cotizacion.moneda) }}</span>
         </div>
 
-        <div v-if="desglose.cuotaAlumnos > 0" class="breakdown-row">
+        <div v-if="cotizacion.cuota_alumnos > 0" class="breakdown-row">
           <span class="concept-label">
-            Cuota por matrícula ({{ alumnos }} alumnos × {{ formatearMoneda(precio.por_alumno, desglose.moneda) }}):
+            Cuota por matrícula ({{ alumnos }} alumnos × {{ formatearMoneda(precio.por_alumno, cotizacion.moneda) }}):
           </span>
-          <span class="concept-val">+ {{ formatearMoneda(desglose.cuotaAlumnos, desglose.moneda) }}</span>
+          <span class="concept-val">+ {{ formatearMoneda(cotizacion.cuota_alumnos, cotizacion.moneda) }}</span>
         </div>
 
-        <div v-if="desglose.cuotaPlanteles > 0" class="breakdown-row">
-          <span class="concept-label">
-            Planteles adicionales ({{ planteles - 1 }} extra):
-          </span>
-          <span class="concept-val">+ {{ formatearMoneda(desglose.cuotaPlanteles, desglose.moneda) }}</span>
-        </div>
-
-        <div v-if="desglose.costoAddOns > 0" class="breakdown-row">
-          <span class="concept-label">Módulos & soporte adicional:</span>
-          <span class="concept-val">+ {{ formatearMoneda(desglose.costoAddOns, desglose.moneda) }}</span>
-        </div>
       </div>
 
       <div class="summary-total-box">
         <div class="total-row">
-          <span class="total-label">Total Estimado</span>
+          <span class="total-label">Total de la cotización</span>
           <div class="total-amount-wrapper">
-            <span class="total-amount">{{ formatearMoneda(desglose.total, desglose.moneda) }}</span>
-            <span class="total-currency">{{ desglose.moneda }}</span>
+            <span class="total-amount">{{ formatearMoneda(cotizacion.total, cotizacion.moneda) }}</span>
+            <span class="total-currency">{{ cotizacion.moneda }}</span>
           </div>
         </div>
         <p class="backend-seal-notice">
@@ -69,7 +58,7 @@
         </div>
         <div class="guarantee-item">
           <AppIcon name="check-circle" size="14" />
-          <span>Facturación CFDI e IVA desglosado</span>
+          <span>Comprobante interno disponible tras la confirmación</span>
         </div>
       </div>
     </div>
@@ -77,19 +66,18 @@
     <div v-else class="empty-state">
       <AppIcon name="sliders" size="24" class="text-muted" />
       <p class="text-muted text-sm" style="margin-top: 0.5rem;">
-        Selecciona un plan y modalidad para proyectar la cotización.
+        Selecciona un plan, modalidad y cantidad válidos para obtener la cotización.
       </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import AppIcon from '../../../../components/AppIcon.vue';
 import ModalidadBadge from './ModalidadBadge.vue';
-import { formatearMoneda, calcularTotalEstimado } from '../domain/comercialCalculos';
+import { formatearMoneda } from '../domain/comercialCalculos';
 
-const props = defineProps({
+defineProps({
   plan: {
     type: Object,
     default: null,
@@ -102,14 +90,7 @@ const props = defineProps({
     type: Number,
     default: 1,
   },
-  planteles: {
-    type: Number,
-    default: 1,
-  },
-  addOns: {
-    type: Array,
-    default: () => [],
-  },
+  cotizacion: { type: Object, default: null },
   cargando: {
     type: Boolean,
     default: false,
@@ -118,14 +99,6 @@ const props = defineProps({
 
 defineEmits(['procederCheckout']);
 
-const desglose = computed(() => {
-  return calcularTotalEstimado({
-    precio: props.precio,
-    alumnos: props.alumnos,
-    planteles: props.planteles,
-    addOns: props.addOns,
-  });
-});
 </script>
 
 <style scoped>
