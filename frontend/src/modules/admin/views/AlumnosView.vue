@@ -1,239 +1,228 @@
 <template>
-  <div class="alumnos-page">
-    <div class="page-header">
+  <div class="alumnos-page admin-view">
+    <header class="ui-page-header">
       <div>
-        <h1 class="page-title">Padrón de Alumnos</h1>
-        <p class="page-subtitle">Listado oficial de estudiantes matriculados en la institución</p>
+        <h1 class="ui-large-title">Padrón de alumnos</h1>
+        <p class="ui-page-subtitle">Estudiantes inscritos en la institución</p>
       </div>
-      <div class="header-actions">
+      <div class="ui-page-actions">
         <router-link to="/admin/importar" class="btn btn-secondary btn-sm">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Importar alumnos CSV
+          <AppIcon name="upload" :size="14" />
+          Importar alumnos con CSV
         </router-link>
       </div>
-    </div>
+    </header>
 
-    <!-- Error Alert -->
-    <div v-if="errorMsg" class="alert alert-danger" role="alert">
-      {{ errorMsg }}
-    </div>
+    <ErrorBanner
+      v-if="errorMsg"
+      titulo="No pudimos cargar el padrón"
+      :mensaje="errorMsg"
+      :cargando="cargando"
+      @reintentar="cargarAlumnos"
+    />
 
-    <div class="card">
+    <section class="card">
       <div class="card-header">
         <h2 class="card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Estudiantes Registrados ({{ totalAlumnos }})
+          <AppIcon name="users" />
+          Estudiantes registrados
+          <span class="ui-section-count ui-num">{{ totalAlumnos }}</span>
         </h2>
       </div>
 
       <div class="card-body">
-        <!-- Buscador -->
-        <div class="filter-bar">
-          <div class="search-input-wrapper">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input
-              v-model="terminoBusqueda"
-              type="text"
-              class="form-input"
-              placeholder="Buscar por matrícula, nombre o apellidos…"
-              @input="onSearchInput"
-            />
-          </div>
+        <div class="ui-search alumnos-search" role="search">
+          <AppIcon name="search" :size="16" class="ui-search-icon" />
+          <input
+            v-model="terminoBusqueda"
+            type="search"
+            placeholder="Buscar por matrícula, nombre o apellidos"
+            aria-label="Buscar alumnos"
+            @input="onSearchInput"
+          />
           <button
             v-if="terminoBusqueda"
             type="button"
-            class="btn btn-outline btn-sm"
+            class="ui-search-clear"
+            aria-label="Borrar búsqueda"
             @click="limpiarBusqueda"
           >
-            Limpiar búsqueda
+            <AppIcon name="x-circle" :size="16" />
           </button>
         </div>
 
-        <!-- Tabla de Alumnos -->
+        <!-- A1: columnas esenciales -->
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
                 <th>Matrícula</th>
-                <th>Nombre Completo</th>
+                <th>Nombre completo</th>
                 <th>Plan</th>
-                <th>Semestre</th>
-                <th>Promedio</th>
-                <th>Créditos</th>
-                <th>Materias Aprobadas</th>
                 <th>Estatus</th>
-                <th>Detalles</th>
+                <th class="th-detalles">Detalles</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="cargando">
-                <td colspan="9" class="text-center" style="padding: 2.5rem;">
-                  <div class="spinner spinner-primary" style="margin: 0 auto 0.5rem;"></div>
-                  <span class="text-muted">Cargando padrón de alumnos…</span>
-                </td>
-              </tr>
+              <!-- T7: filas esqueleto mientras carga -->
+              <template v-if="cargando">
+                <tr v-for="n in 6" :key="`sk-${n}`" aria-hidden="true">
+                  <td><div class="skeleton ui-skel-line" style="width: 60px"></div></td>
+                  <td><div class="skeleton ui-skel-line" style="width: 70%"></div></td>
+                  <td><div class="skeleton ui-skel-line" style="width: 110px"></div></td>
+                  <td><div class="skeleton ui-skel-line" style="width: 60px"></div></td>
+                  <td><div class="skeleton ui-skel-line" style="width: 80px"></div></td>
+                </tr>
+              </template>
 
               <tr v-else-if="alumnos.length === 0">
-                <td colspan="9" class="text-center" style="padding: 2.5rem; color: var(--text-muted);">
-                  No se encontraron alumnos con el criterio de búsqueda.
+                <td colspan="5" class="empty-cell">
+                  {{ terminoBusqueda ? `No encontramos alumnos para «${terminoBusqueda}».` : 'Aún no hay alumnos registrados.' }}
                 </td>
               </tr>
 
+              <!-- Toda la fila abre la ficha -->
+              <template v-else>
               <tr
                 v-for="a in alumnos"
                 :key="a.id"
                 class="alumno-row"
                 @click="abrirDetalle(a)"
               >
-                <td class="font-mono font-bold">{{ a.numero_de_cuenta }}</td>
+                <td class="cell-strong ui-num">{{ a.numero_de_cuenta }}</td>
+                <td class="cell-strong">{{ nombreCompleto(a) }}</td>
+                <!-- A4: número y nombre del plan -->
                 <td>
-                  <strong>{{ a.nombre }} {{ a.apellido_paterno }} {{ a.apellido_materno }}</strong>
+                  <span class="ui-num">#{{ a.plan_estudios }}</span>
+                  <span v-if="nombrePlan(a.plan_estudios)" class="cell-sub"> · {{ nombrePlan(a.plan_estudios) }}</span>
                 </td>
                 <td>
-                  <span class="badge badge-indigo">Plan #{{ a.plan_estudios }}</span>
-                </td>
-                <td class="text-center font-mono">{{ a.semestre }}</td>
-                <td class="font-mono font-bold">{{ Number(a.promedio_acumulado).toFixed(2) }}</td>
-                <td class="font-mono">{{ a.creditos }}</td>
-                <td>
-                  <span class="badge badge-success">
-                    {{ (a.materias_aprobadas_ids || []).length }} aprobadas
-                  </span>
-                </td>
-                <td>
-                  <span class="badge" :class="a.activo ? 'badge-success' : 'badge-neutral'">
+                  <span class="estatus" :class="a.activo ? 'estatus-activo' : 'estatus-inactivo'">
+                    <span class="estatus-dot" aria-hidden="true"></span>
                     {{ a.activo ? 'Activo' : 'Inactivo' }}
                   </span>
                 </td>
-                <td>
+                <td class="td-detalles">
                   <button
                     type="button"
                     class="btn btn-secondary btn-sm"
+                    :aria-label="`Ver ficha de ${nombreCompleto(a)}`"
                     @click.stop="abrirDetalle(a)"
                   >
                     Ver ficha
                   </button>
                 </td>
               </tr>
+              </template>
             </tbody>
           </table>
         </div>
 
-        <!-- Paginación DRF -->
+        <!-- A5: paginación clara -->
         <div class="pagination-footer">
-          <div class="text-sm text-muted">
-            Mostrando página {{ paginaActual }} · Total: {{ totalAlumnos }} alumnos
+          <div class="pagination-info ui-num">
+            Página {{ paginaActual }} de {{ totalPaginas }} · {{ totalAlumnos }} alumnos
           </div>
           <div class="pagination-buttons">
             <button
               type="button"
               class="btn btn-secondary btn-sm"
               :disabled="!urlAnterior || cargando"
+              aria-label="Página anterior"
               @click="cambiarPagina(paginaActual - 1)"
             >
-              ← Anterior
+              <AppIcon name="chevron-left" :size="16" />
+              Anterior
             </button>
             <button
               type="button"
               class="btn btn-secondary btn-sm"
               :disabled="!urlSiguiente || cargando"
+              aria-label="Página siguiente"
               @click="cambiarPagina(paginaActual + 1)"
             >
-              Siguiente →
+              Siguiente
+              <AppIcon name="chevron-right" :size="16" />
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Modal Detalle del Alumno -->
-    <div v-if="alumnoSeleccionado" class="modal-backdrop" @click="alumnoSeleccionado = null">
-      <div class="modal-box" @click.stop>
-        <div class="modal-header">
+    <!-- A3: ficha como hoja (Escape, clic fuera o ×) -->
+    <AppSheet
+      :abierto="!!alumnoSeleccionado"
+      titulo="Ficha del estudiante"
+      :subtitulo="alumnoSeleccionado ? `Matrícula ${alumnoSeleccionado.numero_de_cuenta}` : ''"
+      @cerrar="alumnoSeleccionado = null"
+    >
+      <template v-if="alumnoSeleccionado">
+        <div class="ficha-identidad">
+          <div class="ficha-avatar" aria-hidden="true">
+            {{ alumnoSeleccionado.nombre?.charAt(0) }}{{ alumnoSeleccionado.apellido_paterno?.charAt(0) }}
+          </div>
           <div>
-            <h3 class="modal-title">Ficha del Estudiante</h3>
-            <span class="font-mono text-xs text-muted">{{ alumnoSeleccionado.numero_de_cuenta }}</span>
-          </div>
-          <button
-            type="button"
-            class="modal-close-btn"
-            @click="alumnoSeleccionado = null"
-          >
-            ×
-          </button>
-        </div>
-
-        <div class="modal-body">
-          <div class="student-profile-summary">
-            <div class="student-avatar-lg">
-              {{ alumnoSeleccionado.nombre?.charAt(0) }}{{ alumnoSeleccionado.apellido_paterno?.charAt(0) }}
+            <div class="ficha-nombre">{{ nombreCompleto(alumnoSeleccionado) }}</div>
+            <div class="ficha-plan ui-num">
+              Plan #{{ alumnoSeleccionado.plan_estudios }}
+              <template v-if="nombrePlan(alumnoSeleccionado.plan_estudios)">
+                · {{ nombrePlan(alumnoSeleccionado.plan_estudios) }}
+              </template>
+              · {{ alumnoSeleccionado.activo ? 'Activo' : 'Inactivo' }}
             </div>
-            <div>
-              <h4 class="student-fullname">
-                {{ alumnoSeleccionado.nombre }} {{ alumnoSeleccionado.apellido_paterno }} {{ alumnoSeleccionado.apellido_materno }}
-              </h4>
-              <p class="text-sm text-muted">
-                Matrícula: <strong class="font-mono">{{ alumnoSeleccionado.numero_de_cuenta }}</strong> · Plan #{{ alumnoSeleccionado.plan_estudios }}
-              </p>
-            </div>
-          </div>
-
-          <div class="stats-mini-grid">
-            <div class="stat-mini">
-              <span class="stat-mini-label">Promedio</span>
-              <strong class="stat-mini-val">{{ Number(alumnoSeleccionado.promedio_acumulado).toFixed(2) }}</strong>
-            </div>
-            <div class="stat-mini">
-              <span class="stat-mini-label">Semestre</span>
-              <strong class="stat-mini-val">{{ alumnoSeleccionado.semestre }}</strong>
-            </div>
-            <div class="stat-mini">
-              <span class="stat-mini-label">Créditos</span>
-              <strong class="stat-mini-val">{{ alumnoSeleccionado.creditos }}</strong>
-            </div>
-            <div class="stat-mini">
-              <span class="stat-mini-label">Indicador Escolar</span>
-              <strong class="stat-mini-val">{{ Number(alumnoSeleccionado.indicador_escolar).toFixed(2) }}</strong>
-            </div>
-          </div>
-
-          <div class="detail-section">
-            <h5 class="detail-subtitle">Materias Aprobadas (IDs)</h5>
-            <div v-if="alumnoSeleccionado.materias_aprobadas_ids?.length" class="ids-wrap">
-              <span
-                v-for="id in alumnoSeleccionado.materias_aprobadas_ids"
-                :key="id"
-                class="badge badge-indigo"
-              >
-                Materia #{{ id }}
-              </span>
-            </div>
-            <p v-else class="text-sm text-muted">Sin materias aprobadas registradas.</p>
-          </div>
-
-          <div v-if="alumnoSeleccionado.ventana_texto" class="detail-section">
-            <h5 class="detail-subtitle">Ventana de Inscripción</h5>
-            <p class="text-sm text-muted">{{ alumnoSeleccionado.ventana_texto }}</p>
           </div>
         </div>
 
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary btn-sm"
-            @click="alumnoSeleccionado = null"
-          >
-            Cerrar ficha
-          </button>
+        <div class="ui-grouped ficha-datos">
+          <div class="ui-row">
+            <span class="ui-row-label">Promedio</span>
+            <span class="ui-row-value">{{ Number(alumnoSeleccionado.promedio_acumulado).toFixed(2) }}</span>
+          </div>
+          <div class="ui-row">
+            <span class="ui-row-label">Semestre</span>
+            <span class="ui-row-value">{{ alumnoSeleccionado.semestre }}</span>
+          </div>
+          <div class="ui-row">
+            <span class="ui-row-label">Créditos</span>
+            <span class="ui-row-value">{{ alumnoSeleccionado.creditos }}</span>
+          </div>
+          <div class="ui-row">
+            <span class="ui-row-label">Indicador escolar</span>
+            <span class="ui-row-value">{{ Number(alumnoSeleccionado.indicador_escolar).toFixed(2) }}</span>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <h3 class="ficha-seccion">
+          Materias aprobadas
+          <span class="ui-section-count">{{ (alumnoSeleccionado.materias_aprobadas_ids || []).length }}</span>
+        </h3>
+        <div v-if="alumnoSeleccionado.materias_aprobadas_ids?.length" class="ui-grouped ficha-materias">
+          <div v-for="id in alumnoSeleccionado.materias_aprobadas_ids" :key="id" class="ui-row">
+            <span class="materia-id ui-num">#{{ id }}</span>
+            <!-- A4: número y nombre de la materia -->
+            <div class="ui-row-main">
+              <div class="ui-row-title">{{ materia(id)?.nombre || 'Materia sin nombre disponible' }}</div>
+              <div v-if="materia(id)?.clave" class="ui-row-subtitle"><span class="ui-code">{{ materia(id).clave }}</span></div>
+            </div>
+          </div>
+        </div>
+        <p v-else class="ficha-vacio">Sin materias aprobadas registradas.</p>
+
+        <template v-if="alumnoSeleccionado.ventana_texto">
+          <h3 class="ficha-seccion">Ventana de inscripción</h3>
+          <p class="ficha-texto">{{ alumnoSeleccionado.ventana_texto }}</p>
+        </template>
+      </template>
+    </AppSheet>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import api, { obtenerMensajeError } from '../../../api';
+import AppIcon from '../../../components/AppIcon.vue';
+import AppSheet from '../../../components/AppSheet.vue';
+import ErrorBanner from '../../../components/ErrorBanner.vue';
 
 const alumnos = ref([]);
 const totalAlumnos = ref(0);
@@ -244,10 +233,29 @@ const terminoBusqueda = ref('');
 const paginaActual = ref(1);
 const urlSiguiente = ref(null);
 const urlAnterior = ref(null);
+const tamanoPagina = ref(25); // PAGE_SIZE por defecto del backend; se ajusta con la primera página llena
 
 const alumnoSeleccionado = ref(null);
 
+// A4: catálogos para mostrar nombres junto a los números
+const planesPorId = ref(new Map());
+const materiasPorId = ref(new Map());
+
 let debounceTimeout = null;
+
+const totalPaginas = computed(() => Math.max(1, Math.ceil(totalAlumnos.value / tamanoPagina.value)));
+
+function nombreCompleto(a) {
+  return [a.nombre, a.apellido_paterno, a.apellido_materno].filter(Boolean).join(' ');
+}
+
+function nombrePlan(id) {
+  return planesPorId.value.get(id)?.nombre || '';
+}
+
+function materia(id) {
+  return materiasPorId.value.get(id);
+}
 
 function onSearchInput() {
   clearTimeout(debounceTimeout);
@@ -281,6 +289,7 @@ async function cargarAlumnos() {
       totalAlumnos.value = data.count || 0;
       urlSiguiente.value = data.next;
       urlAnterior.value = data.previous;
+      if (data.next && data.results.length) tamanoPagina.value = data.results.length;
     } else if (Array.isArray(data)) {
       alumnos.value = data;
       totalAlumnos.value = data.length;
@@ -291,6 +300,21 @@ async function cargarAlumnos() {
     errorMsg.value = obtenerMensajeError(err);
   } finally {
     cargando.value = false;
+  }
+}
+
+// Nombres de planes y materias: si falla, la vista sigue mostrando solo los números
+async function cargarCatalogos() {
+  const lista = (data) => (Array.isArray(data) ? data : (data?.results || []));
+  try {
+    const [respPlanes, respNodos] = await Promise.all([
+      api.get('/planes-estudios/'),
+      api.get('/nodos/'),
+    ]);
+    planesPorId.value = new Map(lista(respPlanes.data).map((p) => [p.id, p]));
+    materiasPorId.value = new Map(lista(respNodos.data).map((n) => [n.id, n]));
+  } catch {
+    /* sin nombres disponibles */
   }
 }
 
@@ -306,46 +330,82 @@ function abrirDetalle(alumno) {
 
 onMounted(() => {
   cargarAlumnos();
+  cargarCatalogos();
 });
 </script>
 
 <style scoped>
-.page-header {
+.alumnos-page {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
 }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text-main);
+.alumnos-search {
+  max-width: 420px;
+  margin-bottom: 1rem;
 }
 
-.page-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-muted);
+.empty-cell {
+  padding: 2.5rem !important;
+  text-align: center;
+  color: var(--text-muted) !important;
 }
 
 .alumno-row {
   cursor: pointer;
-  transition: background-color 0.15s ease;
 }
 
-.alumno-row:hover {
-  background-color: var(--primary-light) !important;
+.alumno-row:hover td {
+  background-color: var(--row-hover);
 }
 
+.cell-strong {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.cell-sub {
+  color: var(--text-muted);
+}
+
+.th-detalles,
+.td-detalles {
+  text-align: right;
+}
+
+/* Estatus: punto + texto (no solo color) */
+.estatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.estatus-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.estatus-activo { color: var(--success-text); }
+.estatus-activo .estatus-dot { background-color: var(--success); }
+.estatus-inactivo { color: var(--text-muted); }
+.estatus-inactivo .estatus-dot { background-color: var(--text-light); }
+
+/* Paginación */
 .pagination-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding-top: 1rem;
+  gap: 0.75rem;
   margin-top: 1rem;
-  border-top: 1px solid var(--border);
+}
+
+.pagination-info {
+  font-size: 0.875rem;
+  color: var(--text-muted);
 }
 
 .pagination-buttons {
@@ -353,167 +413,73 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-/* Modal */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.5);
+/* Ficha */
+.ficha-identidad {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
+  gap: 0.9rem;
+  margin-bottom: 1.1rem;
 }
 
-.modal-box {
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  width: 100%;
-  max-width: 520px;
-  box-shadow: var(--shadow-xl);
-  overflow: hidden;
-  animation: modalEnter 0.2s ease-out;
-}
-
-@keyframes modalEnter {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.modal-header {
-  padding: 1.15rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: var(--text-light);
-  cursor: pointer;
-}
-
-.modal-close-btn:hover {
-  color: var(--text-main);
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border);
-  background-color: var(--bg-main);
-  display: flex;
-  justify-content: flex-end;
-}
-
-.student-profile-summary {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
-.student-avatar-lg {
-  width: 48px;
-  height: 48px;
+.ficha-avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: var(--accent);
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
-.student-fullname {
-  font-size: 1.1rem;
+.ficha-nombre {
+  font-size: 1.0625rem;
   font-weight: 700;
   color: var(--text-main);
-  margin-bottom: 0.15rem;
 }
 
-.stats-mini-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-}
-
-.stat-mini {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem;
-  text-align: center;
-}
-
-.stat-mini-label {
-  display: block;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.stat-mini-val {
-  font-size: 1.1rem;
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--primary);
-}
-
-.detail-section {
-  margin-top: 1rem;
-  border-top: 1px solid var(--border-subtle);
-  padding-top: 0.75rem;
-}
-
-.detail-subtitle {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 0.4rem;
-}
-
-.ids-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.text-muted {
-  color: var(--text-muted);
-}
-
-.text-xs {
-  font-size: 0.75rem;
-}
-
-.text-sm {
+.ficha-plan {
+  margin-top: 0.1rem;
   font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.ficha-datos,
+.ficha-materias {
+  background-color: var(--bg-surface);
+  border-color: transparent;
+}
+
+.ficha-seccion {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1.25rem 0 0.5rem;
+  padding: 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.ficha-materias .ui-row {
+  --ui-separator-inset: 4rem;
+}
+
+.materia-id {
+  flex-shrink: 0;
+  width: 2.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ficha-vacio,
+.ficha-texto {
+  padding: 0 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
 }
 </style>

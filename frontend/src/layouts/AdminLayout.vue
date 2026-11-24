@@ -1,198 +1,134 @@
 <template>
   <div class="admin-shell">
-    <!-- Sidebar Navegación Admin -->
+    <!-- Barra lateral (estilo barra lateral de macOS: sigue el tema) -->
     <aside class="admin-sidebar" :class="{ 'sidebar-open': sidebarAbierto }">
       <div class="sidebar-top">
         <div class="sidebar-brand">
-          <div class="brand-symbol">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+          <div class="brand-symbol" aria-hidden="true">
+            <AppIcon name="logo" :size="18" :stroke-width="2.5" />
           </div>
           <div class="brand-titles">
             <span class="brand-name">InscripcionMadeEasy</span>
-            <span class="brand-env">Admin SaaS</span>
+            <span class="brand-env">Administración escolar</span>
           </div>
         </div>
 
         <div class="school-info-card">
-          <div class="school-info-label">Escuela Activa</div>
+          <div class="school-info-label">Escuela activa</div>
           <div class="school-info-name">{{ authStore.nombreEscuela }}</div>
           <span class="badge badge-success school-badge">
-            ● {{ authStore.membresia?.estado_escuela || 'ACTIVO' }}
+            ● {{ estadoEscuela }}
           </span>
         </div>
       </div>
 
-      <nav class="sidebar-nav">
-        <router-link
-          to="/admin/dashboard"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      <nav class="sidebar-nav" aria-label="Navegación de administración">
+        <router-link to="/admin/dashboard" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="dashboard" class="nav-icon" :size="18" />
           <span>Dashboard</span>
         </router-link>
 
-        <router-link
-          to="/admin/asignaciones"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          <span>Generar Horarios</span>
+        <router-link to="/admin/asignaciones" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="zap" class="nav-icon" :size="18" />
+          <span>Generar horarios</span>
         </router-link>
 
-        <router-link
-          to="/admin/importar"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <router-link to="/admin/importar" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="upload" class="nav-icon" :size="18" />
           <span>Importación CSV</span>
         </router-link>
 
-        <router-link
-          to="/admin/alumnos"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <router-link to="/admin/alumnos" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="users" class="nav-icon" :size="18" />
           <span>Alumnos</span>
         </router-link>
 
-        <router-link
-          to="/admin/grupos"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span>Grupos y Cupos</span>
+        <router-link to="/admin/grupos" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="calendar" class="nav-icon" :size="18" />
+          <span>Grupos y cupos</span>
         </router-link>
 
-        <router-link
-          to="/admin/planes"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          <span>Planes de Estudio</span>
+        <router-link to="/admin/planes" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="book-open" class="nav-icon" :size="18" />
+          <span>Planes de estudio</span>
         </router-link>
 
-        <div class="sidebar-section-divider"></div>
-        <div class="sidebar-section-label">Contratación & Licencias</div>
+        <div class="sidebar-section-label">Contratación y licencias</div>
 
-        <router-link
-          to="/admin/comercial/planes"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <AppIcon name="award" class="nav-icon" size="18" />
-          <span>Planes Comerciales</span>
+        <router-link to="/admin/comercial/planes" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="award" class="nav-icon" :size="18" />
+          <span>Planes comerciales</span>
         </router-link>
 
-        <router-link
-          to="/admin/comercial/configurador"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <AppIcon name="sliders" class="nav-icon" size="18" />
-          <span>Configurar Plan</span>
+        <router-link to="/admin/comercial/configurador" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="sliders" class="nav-icon" :size="18" />
+          <span>Configurar plan</span>
         </router-link>
 
-        <router-link
-          to="/admin/comercial/suscripcion"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <AppIcon name="credit-card" class="nav-icon" size="18" />
-          <span>Mi Suscripción</span>
+        <router-link to="/admin/comercial/suscripcion" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="credit-card" class="nav-icon" :size="18" />
+          <span>Mi suscripción</span>
         </router-link>
 
-        <router-link
-          to="/admin/comercial/licencias"
-          class="nav-item"
-          @click="sidebarAbierto = false"
-        >
-          <AppIcon name="shield" class="nav-icon" size="18" />
+        <router-link to="/admin/comercial/licencias" class="nav-item" @click="sidebarAbierto = false">
+          <AppIcon name="shield" class="nav-icon" :size="18" />
           <span>Licencias</span>
         </router-link>
 
         <template v-if="esPropietario">
-          <div class="sidebar-section-divider"></div>
           <div class="sidebar-section-label">Plataforma SaaS</div>
           <router-link
             to="/comercial/propietario/dashboard"
             class="nav-item nav-item-propietario"
             @click="sidebarAbierto = false"
           >
-            <AppIcon name="zap" class="nav-icon" size="18" />
-            <span>Panel Propietario</span>
+            <AppIcon name="zap" class="nav-icon" :size="18" />
+            <span>Panel propietario</span>
           </router-link>
         </template>
       </nav>
 
+      <!-- Cuenta y único botón para cerrar sesión (L2) -->
       <div class="sidebar-footer">
         <div class="user-profile-badge">
-          <div class="user-avatar">{{ inicialesAdmin }}</div>
+          <div class="user-avatar" aria-hidden="true">{{ inicialesAdmin }}</div>
           <div class="user-details">
             <span class="user-name">{{ authStore.matriculaOId || 'Admin' }}</span>
             <span class="user-role">Administrador</span>
           </div>
         </div>
-        <button
-          type="button"
-          class="btn btn-outline btn-sm logout-btn"
-          @click="cerrarSesion"
-          title="Cerrar sesión"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <button type="button" class="btn btn-secondary btn-sm logout-btn" @click="cerrarSesion">
+          <AppIcon name="log-out" :size="15" />
           <span>Salir</span>
         </button>
       </div>
     </aside>
 
-    <!-- Overlay móvil para cerrar sidebar -->
-    <div
-      v-if="sidebarAbierto"
-      class="sidebar-backdrop"
-      @click="sidebarAbierto = false"
-    ></div>
+    <!-- Fondo para cerrar la barra lateral en pantallas angostas -->
+    <div v-if="sidebarAbierto" class="sidebar-backdrop" @click="sidebarAbierto = false"></div>
 
-    <!-- Contenido Principal -->
     <div class="admin-main-wrapper">
+      <!-- Barra superior mínima (L3): solo menú en pantallas angostas y acciones globales -->
       <header class="admin-topbar">
         <button
           type="button"
           class="mobile-toggle-btn"
-          @click="sidebarAbierto = !sidebarAbierto"
           aria-label="Abrir menú"
+          @click="sidebarAbierto = !sidebarAbierto"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <AppIcon name="menu" :size="22" />
         </button>
-
-        <div class="topbar-context">
-          <span class="context-badge">Modo Gestión Institucional</span>
-        </div>
 
         <div class="topbar-actions">
           <router-link
             v-if="esPropietario"
             to="/comercial/propietario/dashboard"
-            class="btn btn-outline btn-sm switch-propietario-btn"
+            class="btn btn-secondary btn-sm"
             title="Abrir la consola del propietario SaaS"
           >
-            <AppIcon name="zap" size="14" />
-            <span>Panel Propietario</span>
+            <AppIcon name="zap" :size="14" />
+            <span>Panel propietario</span>
           </router-link>
-          <span class="tenant-uuid-pill" :title="authStore.tenantId">
-            Tenant: {{ authStore.tenantId ? authStore.tenantId.substring(0, 8) + '…' : 'N/A' }}
-          </span>
-          <button
-            type="button"
-            class="btn btn-secondary btn-sm"
-            @click="cerrarSesion"
-          >
-            Cerrar sesión
-          </button>
           <ThemeToggle />
         </div>
       </header>
@@ -231,6 +167,12 @@ const inicialesAdmin = computed(() => {
   ).toUpperCase();
 });
 
+// "ACTIVO" → "Activo" (L4: mayúscula solo al inicio)
+const estadoEscuela = computed(() => {
+  const estado = String(authStore.membresia?.estado_escuela || 'ACTIVO').toLowerCase();
+  return estado.charAt(0).toUpperCase() + estado.slice(1);
+});
+
 function cerrarSesion() {
   authStore.logout();
   notifStore.info('Sesión cerrada correctamente');
@@ -240,198 +182,201 @@ function cerrarSesion() {
 
 <style scoped>
 .admin-shell {
+  /* Material de la barra lateral (claro) */
+  --sidebar-bg: rgba(242, 242, 247, 0.82);
+  --sidebar-border: var(--border);
+  --sidebar-card: rgba(255, 255, 255, 0.7);
+
   display: flex;
   min-height: 100vh;
   background-color: var(--bg-main);
 }
 
-/* Sidebar */
+:root[data-theme="dark"] .admin-shell {
+  --sidebar-bg: rgba(28, 28, 30, 0.82);
+  --sidebar-card: rgba(255, 255, 255, 0.05);
+}
+
+/* ---------- Barra lateral ---------- */
 .admin-sidebar {
-  width: 260px;
-  background-color: var(--bg-sidebar);
-  color: #ffffff;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 264px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  background-color: var(--sidebar-bg);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  border-right: 1px solid var(--sidebar-border);
+  color: var(--text-main);
   transition: transform 0.25s ease;
   z-index: 100;
 }
 
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .admin-sidebar {
+    background-color: var(--bg-card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 .sidebar-top {
-  padding: 1.5rem 1.25rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.25rem 1rem 0.75rem;
 }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+  padding: 0 0.25rem;
 }
 
 .brand-symbol {
   width: 34px;
   height: 34px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
+  border-radius: 9px;
+  background-color: var(--accent);
+  color: var(--on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
 }
 
 .brand-titles {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .brand-name {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: #ffffff;
+  color: var(--text-main);
 }
 
 .brand-env {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #c7d2fe;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .school-info-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-sm);
-  padding: 0.65rem 0.85rem;
+  background-color: var(--sidebar-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
 }
 
 .school-info-label {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  color: #94a3b8;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .school-info-name {
-  font-size: 0.85rem;
+  margin: 0.1rem 0 0.4rem;
+  font-size: 0.9375rem;
   font-weight: 700;
-  color: #ffffff;
-  margin: 0.15rem 0 0.35rem;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .school-badge {
-  font-size: 0.65rem;
-  padding: 0.1rem 0.45rem;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-/* Sidebar Nav */
+/* Navegación */
 .sidebar-nav {
-  padding: 1rem 0.75rem;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  flex: 1;
+  gap: 2px;
+  padding: 0.5rem 0.75rem 1rem;
   overflow-y: auto;
+}
+
+.sidebar-section-label {
+  margin: 1rem 0 0.3rem;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-light);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.85rem;
-  color: #94a3b8;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  transition: all 0.15s ease;
+  gap: 0.7rem;
+  min-height: 36px;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-main);
   text-decoration: none;
-}
-
-.nav-item:hover {
-  color: #ffffff;
-  background-color: var(--bg-sidebar-hover);
-}
-
-.nav-item.router-link-active {
-  background: rgba(79, 70, 229, 0.25);
-  color: #ffffff;
-  border-left: 3px solid #818cf8;
-}
-
-.nav-item-propietario {
-  color: #c4b5fd;
-}
-
-.nav-item-propietario:hover {
-  color: #ffffff;
-  background-color: rgba(124, 58, 237, 0.2);
-}
-
-.switch-propietario-btn {
-  border-color: var(--violet);
-  color: var(--violet);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.switch-propietario-btn:hover {
-  background-color: var(--violet-light);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .nav-icon {
   flex-shrink: 0;
+  color: var(--accent-text);
 }
 
-.sidebar-section-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.08);
-  margin: 0.75rem 0.5rem 0.35rem;
+.nav-item:hover {
+  color: var(--text-main);
+  background-color: var(--fill-track);
 }
 
-.sidebar-section-label {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #64748b;
-  font-weight: 700;
-  padding: 0.2rem 0.85rem;
+/* Selección: fondo tintado del acento, como en macOS */
+.nav-item.router-link-active {
+  background-color: var(--primary-light);
+  color: var(--accent-text);
+  font-weight: 600;
 }
 
-/* Sidebar Footer */
+.nav-item-propietario .nav-icon {
+  color: var(--warning);
+}
+
+/* Pie: cuenta y salir */
 .sidebar-footer {
-  padding: 1rem 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .user-profile-badge {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.6rem;
   min-width: 0;
 }
 
 .user-avatar {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: var(--accent);
-  color: #ffffff;
+  background-color: var(--accent);
+  color: var(--on-accent);
   font-size: 0.75rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
 .user-details {
@@ -441,31 +386,24 @@ function cerrarSesion() {
 }
 
 .user-name {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .user-role {
-  font-size: 0.7rem;
-  color: #94a3b8;
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .logout-btn {
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.2);
-  padding: 0.35rem 0.6rem;
+  flex-shrink: 0;
 }
 
-.logout-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-/* Main Area */
+/* ---------- Área principal ---------- */
 .admin-main-wrapper {
   flex: 1;
   display: flex;
@@ -474,18 +412,18 @@ function cerrarSesion() {
 }
 
 .admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   height: 64px;
-  background-color: var(--bar-bg);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 1.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  background-color: var(--bar-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
 }
 
 .mobile-toggle-btn {
@@ -497,37 +435,21 @@ function cerrarSesion() {
   padding: 0.25rem;
 }
 
-.context-badge {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
 .topbar-actions {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-}
-
-.tenant-uuid-pill {
-  font-size: 0.75rem;
-  font-family: 'JetBrains Mono', monospace;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  padding: 0.25rem 0.6rem;
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  gap: 0.75rem;
 }
 
 .admin-content {
   flex: 1;
-  padding: 1.5rem;
-  max-width: 1400px;
   width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: 1.75rem 1.5rem 2.5rem;
 }
 
-/* Responsivo */
 @media (max-width: 991px) {
   .admin-sidebar {
     position: fixed;
@@ -535,6 +457,7 @@ function cerrarSesion() {
     bottom: 0;
     left: 0;
     transform: translateX(-100%);
+    background-color: var(--bg-card);
   }
 
   .admin-sidebar.sidebar-open {
@@ -544,12 +467,30 @@ function cerrarSesion() {
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
-    background-color: rgba(15, 23, 42, 0.5);
     z-index: 90;
+    background-color: rgba(0, 0, 0, 0.4);
   }
 
   .mobile-toggle-btn {
     display: block;
   }
+}
+</style>
+
+<style>
+/* T3 / T4 · En las vistas académicas del administrador no se fuerzan MAYÚSCULAS */
+.admin-view .badge,
+.admin-view .stat-label,
+.admin-view .data-table th {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.admin-view .badge {
+  font-size: 0.8125rem;
+}
+
+.admin-view .data-table th {
+  font-size: 0.8125rem;
 }
 </style>

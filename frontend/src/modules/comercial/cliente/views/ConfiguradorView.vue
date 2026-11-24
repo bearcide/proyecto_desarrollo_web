@@ -343,7 +343,7 @@ function irACheckout() {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--primary);
+  background: var(--accent);
   color: #ffffff;
   display: flex;
   align-items: center;

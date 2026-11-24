@@ -1,116 +1,114 @@
 <template>
-  <div class="grupos-page">
-    <div class="page-header">
+  <div class="grupos-page admin-view">
+    <header class="ui-page-header">
       <div>
-        <h1 class="page-title">Grupos y Cupos Académicos</h1>
-        <p class="page-subtitle">Oferta educativa activa con capacidad de aula y franjas horarias</p>
+        <h1 class="ui-large-title">Grupos y cupos</h1>
+        <p class="ui-page-subtitle">Grupos ofertados con su profesor, cupo y horario</p>
       </div>
-      <div class="header-actions">
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm"
-          :disabled="cargando"
-          @click="cargarDatos"
-        >
-          <svg :class="{ spinner: cargando }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      <div class="ui-page-actions">
+        <button type="button" class="btn btn-secondary btn-sm" :disabled="cargando" @click="cargarDatos">
+          <AppIcon name="refresh" :size="14" :class="{ girando: cargando }" />
           Actualizar
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- Error Alert -->
-    <div v-if="errorMsg" class="alert alert-danger" role="alert">
-      {{ errorMsg }}
-    </div>
+    <ErrorBanner
+      v-if="errorMsg"
+      titulo="No pudimos cargar los grupos"
+      :mensaje="errorMsg"
+      :cargando="cargando"
+      @reintentar="cargarDatos"
+    />
 
-    <div class="card">
+    <section class="card">
       <div class="card-header">
         <h2 class="card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Grupos Ofertados ({{ gruposFiltrados.length }})
+          <AppIcon name="calendar" />
+          Grupos ofertados
+          <span class="ui-section-count ui-num">{{ gruposFiltrados.length }}</span>
         </h2>
       </div>
 
       <div class="card-body">
-        <!-- Filtro -->
-        <div class="filter-bar">
-          <div class="search-input-wrapper">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input
-              v-model="filtroTexto"
-              type="text"
-              class="form-input"
-              placeholder="Buscar por materia, grupo o profesor…"
-            />
-          </div>
+        <!-- G2: campo de búsqueda con lupa y botón para borrar -->
+        <div class="ui-search grupos-search" role="search">
+          <AppIcon name="search" :size="16" class="ui-search-icon" />
+          <input
+            v-model="filtroTexto"
+            type="search"
+            placeholder="Buscar por materia, grupo o profesor"
+            aria-label="Buscar grupos"
+          />
+          <button
+            v-if="filtroTexto"
+            type="button"
+            class="ui-search-clear"
+            aria-label="Borrar búsqueda"
+            @click="filtroTexto = ''"
+          >
+            <AppIcon name="x-circle" :size="16" />
+          </button>
         </div>
 
-        <!-- Tabla de Grupos -->
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Materia</th>
-                <th>Clave Grupo</th>
+                <th>Grupo</th>
                 <th>Profesor</th>
-                <th>Cupo Máximo</th>
-                <th>Horarios Asignados</th>
+                <th>Cupo máximo</th>
+                <th>Horario</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="cargando">
-                <td colspan="6" class="text-center" style="padding: 2.5rem;">
-                  <div class="spinner spinner-primary" style="margin: 0 auto 0.5rem;"></div>
-                  <span class="text-muted">Cargando catálogo de grupos…</span>
-                </td>
-              </tr>
+              <template v-if="cargando">
+                <tr v-for="n in 6" :key="`sk-${n}`" aria-hidden="true">
+                  <td v-for="c in 6" :key="c"><div class="skeleton ui-skel-line" style="width: 75%"></div></td>
+                </tr>
+              </template>
 
               <tr v-else-if="gruposFiltrados.length === 0">
-                <td colspan="6" class="text-center" style="padding: 2.5rem; color: var(--text-muted);">
-                  No hay grupos registrados o coincidentes con la búsqueda.
+                <td colspan="6" class="empty-cell">
+                  {{ filtroTexto ? `No encontramos grupos para «${filtroTexto}».` : 'Aún no hay grupos registrados.' }}
                 </td>
               </tr>
 
-              <tr v-for="g in gruposFiltrados" :key="g.id">
-                <td class="font-mono text-muted">#{{ g.id }}</td>
-                <td>
-                  <strong>{{ obtenerNombreMateria(g.materia) }}</strong>
-                  <div class="font-mono text-xs text-muted">{{ obtenerClaveMateria(g.materia) }}</div>
-                </td>
-                <td>
-                  <span class="badge badge-indigo">{{ g.clave }}</span>
-                </td>
-                <td>{{ g.profesor || 'Sin profesor asignado' }}</td>
-                <td>
-                  <span class="badge badge-neutral font-mono">
-                    {{ g.cupo }} alumnos
-                  </span>
-                </td>
-                <td>
-                  <div v-if="g.horarios && g.horarios.length" class="horarios-chips">
-                    <span
-                      v-for="(h, hIdx) in g.horarios"
-                      :key="hIdx"
-                      class="horario-chip"
-                    >
-                      <strong>{{ h.dia }}:</strong> {{ minutosAHora(h.inicio) }} - {{ minutosAHora(h.fin) }}
-                    </span>
-                  </div>
-                  <span v-else class="text-muted">—</span>
-                </td>
-              </tr>
+              <template v-else>
+                <tr v-for="g in gruposFiltrados" :key="g.id">
+                  <td class="cell-sub ui-num">#{{ g.id }}</td>
+                  <td>
+                    <div class="cell-strong">{{ obtenerNombreMateria(g.materia) }}</div>
+                    <div class="cell-sub ui-code">{{ obtenerClaveMateria(g.materia) }}</div>
+                  </td>
+                  <td class="cell-strong">{{ g.clave }}</td>
+                  <td>{{ g.profesor || 'Sin profesor asignado' }}</td>
+                  <td class="ui-num">{{ g.cupo }} alumnos</td>
+                  <td>
+                    <div v-if="g.horarios && g.horarios.length" class="horarios-lista ui-num">
+                      <span v-for="(h, hIdx) in g.horarios" :key="hIdx">
+                        {{ h.dia }} {{ minutosAHora(h.inicio) }}–{{ minutosAHora(h.fin) }}
+                      </span>
+                    </div>
+                    <span v-else class="cell-sub">Sin horario</span>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api, { obtenerMensajeError } from '../../../api';
+import AppIcon from '../../../components/AppIcon.vue';
+import ErrorBanner from '../../../components/ErrorBanner.vue';
 
 const grupos = ref([]);
 const mapaNodos = ref(new Map());
@@ -178,54 +176,40 @@ onMounted(cargarDatos);
 </script>
 
 <style scoped>
-.page-header {
+.grupos-page {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
 }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 800;
+.grupos-search {
+  max-width: 420px;
+  margin-bottom: 1rem;
+}
+
+.empty-cell {
+  padding: 2.5rem !important;
+  text-align: center;
+  color: var(--text-muted) !important;
+}
+
+.cell-strong {
+  font-weight: 600;
   color: var(--text-main);
 }
 
-.page-subtitle {
-  font-size: 0.875rem;
+.cell-sub {
+  font-size: 0.8125rem;
   color: var(--text-muted);
 }
 
-.horarios-chips {
+.horarios-lista {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.875rem;
 }
 
-.horario-chip {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.775rem;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.text-muted {
-  color: var(--text-muted);
-}
-
-.text-xs {
-  font-size: 0.75rem;
+.girando {
+  animation: spin 0.8s linear infinite;
 }
 </style>
