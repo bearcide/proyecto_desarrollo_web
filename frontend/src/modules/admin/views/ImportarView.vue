@@ -121,7 +121,7 @@
 
         <div class="csv-meta-info">
           <span>Líneas: {{ contarLineas(archivos[tabActivo]) }}</span>
-          <span>Tamaño: {{ (new Blob([archivos[tabActivo]]).size / 1024).toFixed(1) }} KB</span>
+          <span>Tamaño: {{ calcularTamanoKB(archivos[tabActivo]) }} KB</span>
         </div>
       </div>
     </div>
@@ -241,6 +241,12 @@ const totalArchivosConContenido = computed(() => {
 function contarLineas(texto) {
   if (!texto || !texto.trim()) return 0;
   return texto.trim().split('\n').length;
+}
+
+function calcularTamanoKB(texto) {
+  if (!texto) return '0.0';
+  const bytes = new Blob([texto]).size;
+  return (bytes / 1024).toFixed(1);
 }
 
 function handleFileUpload(event, clave) {

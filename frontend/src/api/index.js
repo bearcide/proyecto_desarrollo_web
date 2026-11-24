@@ -57,6 +57,8 @@ api.interceptors.request.use(
     const tenantId = localStorage.getItem('ime_tenant_id');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
     }
     if (tenantId) {
       config.headers['X-Tenant-ID'] = tenantId;
@@ -77,24 +79,47 @@ function ejecutarEspera(nuevoToken, err = null) {
   peticionesEnEspera = [];
 }
 
+export function notificarSesionExpirada() {
+  delete api.defaults.headers.common.Authorization;
+  localStorage.removeItem('ime_token');
+  localStorage.removeItem('ime_refresh');
+  localStorage.removeItem('ime_tenant_id');
+  localStorage.removeItem('ime_membresia');
+  localStorage.removeItem('ime_alumno');
+  localStorage.removeItem('ime_usuario');
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ime:sesion-expirada'));
+  }
+}
+
+export function notificarTokenRenovado(nuevoToken) {
+  localStorage.setItem('ime_token', nuevoToken);
+  api.defaults.headers.common.Authorization = `Bearer ${nuevoToken}`;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ime:token-renovado', { detail: nuevoToken }));
+  }
+}
+
 // Interceptor de RESPONSE: manejo de 401 y refresco transparente con JWT
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const peticionOriginal = error.config;
-    if (error.response?.status === 401 && peticionOriginal && !peticionOriginal._reintento) {
+    if (error.response?.status === 401 && peticionOriginal) {
       // Si la petición original era de login o refresco, no reintentar
       if (peticionOriginal.url?.includes('/token/')) {
         return Promise.reject(error);
       }
 
+      if (peticionOriginal._reintento) {
+        notificarSesionExpirada();
+        return Promise.reject(error);
+      }
+      peticionOriginal._reintento = true;
+
       const refreshToken = localStorage.getItem('ime_refresh');
       if (!refreshToken) {
-        localStorage.removeItem('ime_token');
-        localStorage.removeItem('ime_refresh');
-        localStorage.removeItem('ime_tenant_id');
-        localStorage.removeItem('ime_alumno');
-        localStorage.removeItem('ime_admin');
+        notificarSesionExpirada();
         return Promise.reject(error);
       }
 
@@ -109,7 +134,6 @@ api.interceptors.response.use(
           .catch((err) => Promise.reject(err));
       }
 
-      peticionOriginal._reintento = true;
       refrescando = true;
 
       try {
@@ -119,18 +143,13 @@ api.interceptors.response.use(
           { headers: { 'Content-Type': 'application/json' } },
         );
         const nuevoToken = data.access;
-        localStorage.setItem('ime_token', nuevoToken);
-        api.defaults.headers.common.Authorization = `Bearer ${nuevoToken}`;
+        notificarTokenRenovado(nuevoToken);
         peticionOriginal.headers.Authorization = `Bearer ${nuevoToken}`;
         ejecutarEspera(nuevoToken, null);
         return api(peticionOriginal);
       } catch (errRefresco) {
         ejecutarEspera(null, errRefresco);
-        localStorage.removeItem('ime_token');
-        localStorage.removeItem('ime_refresh');
-        localStorage.removeItem('ime_tenant_id');
-        localStorage.removeItem('ime_alumno');
-        localStorage.removeItem('ime_admin');
+        notificarSesionExpirada();
         return Promise.reject(errRefresco);
       } finally {
         refrescando = false;

@@ -136,23 +136,63 @@
       </header>
 
       <main class="admin-content">
-        <router-view />
+        <div v-if="errorContenido" class="card error-boundary-card">
+          <div class="card-body error-boundary-body">
+            <div class="error-boundary-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <h3 class="error-boundary-title">Error al cargar este módulo</h3>
+            <p class="error-boundary-msg">{{ errorContenido }}</p>
+            <div class="error-boundary-actions">
+              <button type="button" class="btn btn-primary btn-sm" @click="reintentarCarga">
+                Reintentar
+              </button>
+              <router-link to="/admin/dashboard" class="btn btn-secondary btn-sm" @click="errorContenido = null">
+                Ir al Dashboard
+              </router-link>
+            </div>
+          </div>
+        </div>
+        <router-view v-else :key="$route.fullPath" />
       </main>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, watch, onErrorCaptured } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationStore } from '../stores/notification';
 
 const authStore = useAuthStore();
 const notifStore = useNotificationStore();
 const router = useRouter();
+const route = useRoute();
 
 const sidebarAbierto = ref(false);
+const errorContenido = ref(null);
+
+watch(
+  () => route.fullPath,
+  () => {
+    errorContenido.value = null;
+  },
+);
+
+onErrorCaptured((err, instance, info) => {
+  console.error('[AdminLayout] Error capturado en vista:', err, info);
+  errorContenido.value = err?.message || 'Ha ocurrido un error inesperado al renderizar este módulo.';
+  return false;
+});
+
+function reintentarCarga() {
+  errorContenido.value = null;
+}
 
 function cerrarSesion() {
   authStore.logout();
@@ -410,6 +450,44 @@ function cerrarSesion() {
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
+}
+
+/* Error Boundary */
+.error-boundary-card {
+  max-width: 600px;
+  margin: 3rem auto;
+  border-left: 4px solid var(--danger);
+}
+
+.error-boundary-body {
+  padding: 2.5rem 2rem;
+  text-align: center;
+}
+
+.error-boundary-icon {
+  color: var(--danger);
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.error-boundary-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.error-boundary-msg {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.error-boundary-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
 /* Responsivo */
