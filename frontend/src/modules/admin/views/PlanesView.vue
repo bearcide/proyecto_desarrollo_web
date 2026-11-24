@@ -1,34 +1,36 @@
 <template>
-  <div class="planes-page">
-    <div class="page-header">
+  <div class="planes-page admin-view">
+    <header class="ui-page-header">
       <div>
-        <h1 class="page-title">Planes de Estudio y Catálogo Curricular</h1>
-        <p class="page-subtitle">Estructura académica de carreras y prerrequisitos del grafo escolar</p>
+        <h1 class="ui-large-title">Planes de estudio</h1>
+        <p class="ui-page-subtitle">Carreras de la institución, sus materias y los prerrequisitos de cada una</p>
       </div>
-      <div class="header-actions">
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm"
-          :disabled="cargando"
-          @click="cargarPlanes"
-        >
-          <svg :class="{ spinner: cargando }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      <div class="ui-page-actions">
+        <button type="button" class="btn btn-secondary btn-sm" :disabled="cargando" @click="cargarPlanes">
+          <AppIcon name="refresh" :size="14" :class="{ girando: cargando }" />
           Actualizar
         </button>
       </div>
+    </header>
+
+    <ErrorBanner
+      v-if="errorMsg"
+      titulo="No pudimos cargar los planes de estudio"
+      :mensaje="errorMsg"
+      :cargando="cargando"
+      @reintentar="cargarPlanes"
+    />
+
+    <!-- Carga: esqueleto (T7) -->
+    <div v-if="cargando && !planes.length" class="planes-grid" aria-busy="true" aria-label="Cargando planes">
+      <div v-for="n in 2" :key="n" class="card plan-card">
+        <div class="skeleton ui-skel-title"></div>
+        <div class="skeleton ui-skel-line" style="width: 80%"></div>
+        <div class="skeleton ui-skel-line" style="width: 50%"></div>
+      </div>
     </div>
 
-    <!-- Error Alert -->
-    <div v-if="errorMsg" class="alert alert-danger" role="alert">
-      {{ errorMsg }}
-    </div>
-
-    <!-- Lista de Planes -->
-    <div v-if="cargando" class="empty-state">
-      <div class="spinner spinner-primary" style="margin: 0 auto 0.5rem;"></div>
-      <span class="text-muted">Cargando planes de estudio…</span>
-    </div>
-
+    <!-- Planes (P1 no aplicado: se conservan la tarjeta, el botón y el ID) -->
     <div v-else class="planes-grid">
       <div
         v-for="plan in planes"
@@ -40,83 +42,80 @@
         <div class="plan-card-top">
           <div>
             <h3 class="plan-name">{{ plan.nombre }}</h3>
-            <span class="badge badge-indigo">Plan ID #{{ plan.id }}</span>
+            <span class="badge badge-indigo ui-num">Plan #{{ plan.id }}</span>
           </div>
-          <span class="badge" :class="plan.activo ? 'badge-success' : 'badge-neutral'">
+          <span class="estatus" :class="plan.activo ? 'estatus-activo' : 'estatus-inactivo'">
+            <span class="estatus-dot" aria-hidden="true"></span>
             {{ plan.activo ? 'Activo' : 'Inactivo' }}
           </span>
         </div>
         <p class="plan-desc">{{ plan.descripcion || 'Sin descripción registrada' }}</p>
         <div class="plan-footer">
-          <span class="text-xs text-muted">
-            {{ contarMateriasDePlan(plan.id) }} materias asociadas
-          </span>
-          <button type="button" class="btn btn-outline btn-sm">
+          <span class="plan-count ui-num">{{ contarMateriasDePlan(plan.id) }} materias</span>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="planSeleccionado?.id === plan.id ? 'btn-primary' : 'btn-secondary'"
+            :aria-pressed="planSeleccionado?.id === plan.id ? 'true' : 'false'"
+          >
             {{ planSeleccionado?.id === plan.id ? 'Viendo materias' : 'Ver materias' }}
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Materias del Plan Seleccionado -->
-    <div v-if="planSeleccionado" class="card materias-card">
-      <div class="card-header">
-        <h2 class="card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
-          Materias Curriculares de: {{ planSeleccionado.nombre }}
-        </h2>
-        <span class="badge badge-indigo">
-          {{ materiasDelPlan.length }} materias registradas
-        </span>
-      </div>
+    <!-- P2: materias agrupadas por semestre -->
+    <section v-if="planSeleccionado" class="materias-section">
+      <h2 class="materias-title">
+        Materias de {{ planSeleccionado.nombre }}
+        <span class="ui-section-count ui-num">{{ materiasDelPlan.length }}</span>
+      </h2>
 
-      <div class="card-body">
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Clave</th>
-                <th>Nombre de la Asignatura</th>
-                <th>Semestre</th>
-                <th>Créditos</th>
-                <th>Prerrequisitos Requeridos</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="materiasDelPlan.length === 0">
-                <td colspan="5" class="text-center" style="padding: 2rem; color: var(--text-muted);">
-                  No hay materias asociadas a este plan de estudios.
-                </td>
-              </tr>
-              <tr v-for="m in materiasDelPlan" :key="m.id">
-                <td class="font-mono font-bold">{{ m.clave }}</td>
-                <td><strong>{{ m.nombre }}</strong></td>
-                <td>Semestre {{ m.semestre }}</td>
-                <td class="font-mono">{{ m.creditos }} créditos</td>
-                <td>
-                  <div v-if="m.prerrequisitos && m.prerrequisitos.length" class="prereqs-wrap">
-                    <span
-                      v-for="reqId in m.prerrequisitos"
-                      :key="reqId"
-                      class="badge badge-neutral font-mono text-xs"
-                    >
-                      {{ obtenerClavePorId(reqId) || `#${reqId}` }}
-                    </span>
-                  </div>
-                  <span v-else class="text-muted text-xs">Ninguno</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div v-if="materiasDelPlan.length === 0" class="ui-grouped">
+        <div class="ui-empty">
+          <div class="ui-empty-icon"><AppIcon name="book-open" :size="22" /></div>
+          <p class="ui-empty-text">Este plan de estudios aún no tiene materias.</p>
         </div>
       </div>
-    </div>
+
+      <template v-else>
+      <div v-for="grupo in materiasPorSemestre" :key="grupo.semestre" class="semestre-grupo">
+        <h3 class="ui-section-title semestre-title">
+          Semestre {{ grupo.semestre }}
+          <span class="ui-section-count ui-num">
+            {{ grupo.materias.length }} {{ grupo.materias.length === 1 ? 'materia' : 'materias' }} ·
+            {{ grupo.creditos }} créditos
+          </span>
+        </h3>
+        <div class="ui-grouped">
+          <div v-for="m in grupo.materias" :key="m.id" class="ui-row materia-row">
+            <span class="materia-clave ui-code">{{ m.clave }}</span>
+            <div class="ui-row-main">
+              <div class="ui-row-title">{{ m.nombre }}</div>
+              <div class="ui-row-subtitle">
+                <template v-if="m.prerrequisitos && m.prerrequisitos.length">
+                  Requiere:
+                  <span v-for="(reqId, i) in m.prerrequisitos" :key="reqId">
+                    <span class="ui-code">{{ obtenerClavePorId(reqId) || `#${reqId}` }}</span>{{ i < m.prerrequisitos.length - 1 ? ', ' : '' }}
+                  </span>
+                </template>
+                <template v-else>Sin prerrequisitos</template>
+              </div>
+            </div>
+            <span class="ui-row-value">{{ m.creditos }} créditos</span>
+          </div>
+        </div>
+      </div>
+      </template>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api, { obtenerMensajeError } from '../../../api';
+import AppIcon from '../../../components/AppIcon.vue';
+import ErrorBanner from '../../../components/ErrorBanner.vue';
 
 const planes = ref([]);
 const nodos = ref([]);
@@ -131,6 +130,23 @@ function contarMateriasDePlan(planId) {
 const materiasDelPlan = computed(() => {
   if (!planSeleccionado.value) return [];
   return nodos.value.filter((n) => n.plan_estudios === planSeleccionado.value.id);
+});
+
+// P2: agrupar por semestre, en orden
+const materiasPorSemestre = computed(() => {
+  const grupos = new Map();
+  materiasDelPlan.value.forEach((m) => {
+    const sem = m.semestre ?? 0;
+    if (!grupos.has(sem)) grupos.set(sem, []);
+    grupos.get(sem).push(m);
+  });
+  return [...grupos.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([semestre, materias]) => ({
+      semestre,
+      materias,
+      creditos: materias.reduce((s, m) => s + (Number(m.creditos) || 0), 0),
+    }));
 });
 
 function obtenerClavePorId(id) {
@@ -173,108 +189,124 @@ onMounted(cargarPlanes);
 </script>
 
 <style scoped>
-.page-header {
+.planes-page {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text-main);
-}
-
-.page-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-muted);
+  flex-direction: column;
 }
 
 .planes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.25rem;
-  margin-bottom: 1.75rem;
+  margin-bottom: 2rem;
 }
 
 .plan-card {
-  padding: 1.25rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  padding: 1.25rem;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .plan-card:hover {
   border-color: var(--primary-border);
-  transform: translateY(-2px);
 }
 
 .plan-card-active {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-light);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 .plan-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.5rem;
 }
 
 .plan-name {
-  font-size: 1.15rem;
+  margin-bottom: 0.35rem;
+  font-size: 1.1875rem;
   font-weight: 700;
   color: var(--text-main);
-  margin-bottom: 0.25rem;
 }
 
 .plan-desc {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin-bottom: 1rem;
   flex: 1;
+  margin-bottom: 1rem;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
 }
 
 .plan-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid var(--border-subtle);
   padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
 }
 
-.materias-card {
-  margin-top: 1.5rem;
-}
-
-.prereqs-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.text-muted {
+.plan-count {
+  font-size: 0.875rem;
   color: var(--text-muted);
 }
 
-.text-xs {
-  font-size: 0.75rem;
+.estatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.estatus-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.estatus-activo { color: var(--success-text); }
+.estatus-activo .estatus-dot { background-color: var(--success); }
+.estatus-inactivo { color: var(--text-muted); }
+.estatus-inactivo .estatus-dot { background-color: var(--text-light); }
+
+/* Materias por semestre (P2) */
+.materias-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.semestre-grupo + .semestre-grupo {
+  margin-top: 1.5rem;
+}
+
+.semestre-title {
+  justify-content: flex-start;
+  font-size: 0.9375rem;
+}
+
+.materia-row {
+  --ui-separator-inset: 5.6rem;
+}
+
+.materia-clave {
+  flex-shrink: 0;
+  width: 4.5rem;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.girando {
+  animation: spin 0.8s linear infinite;
 }
 </style>

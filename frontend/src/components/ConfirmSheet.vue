@@ -24,7 +24,7 @@
             <button ref="cancelarRef" type="button" class="btn btn-secondary btn-lg" @click="cancelar">
               {{ textoCancelar }}
             </button>
-            <button type="button" class="btn btn-primary btn-lg" @click="$emit('confirmar')">
+            <button type="button" class="btn btn-lg" :class="`btn-${variante}`" @click="$emit('confirmar')">
               {{ textoConfirmar }}
             </button>
           </footer>
@@ -43,6 +43,8 @@ const props = defineProps({
   descripcion: { type: String, default: '' },
   textoConfirmar: { type: String, default: 'Confirmar' },
   textoCancelar: { type: String, default: 'Cancelar' },
+  /** Color del botón de confirmar: 'primary' (índigo) o 'success' (verde). */
+  variante: { type: String, default: 'primary' },
 });
 const emit = defineEmits(['confirmar', 'cancelar']);
 

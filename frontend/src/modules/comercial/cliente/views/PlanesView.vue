@@ -365,7 +365,7 @@ function onConfigurar({ plan, precio }) {
 }
 
 .filter-pill-btn.active {
-  background: var(--primary);
+  background: var(--accent);
   color: #ffffff;
   border-color: var(--primary);
 }

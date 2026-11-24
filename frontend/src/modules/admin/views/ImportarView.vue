@@ -1,54 +1,56 @@
 <template>
-  <div class="importar-page">
-    <div class="page-header">
+  <div class="importar-page admin-view">
+    <header class="ui-page-header">
       <div>
-        <h1 class="page-title">Carga Masiva e Importación CSV</h1>
-        <p class="page-subtitle">
-          Validación sintáctica y relacional estricta, upsert transaccional de catálogos y matrículas
+        <h1 class="ui-large-title">Importación masiva con CSV</h1>
+        <p class="ui-page-subtitle">
+          Valida tus archivos antes de guardarlos. Si algo falla, no se guarda nada a medias.
         </p>
       </div>
-      <div class="header-actions">
+      <!-- I2: acciones agrupadas; limpiar se ve como acción destructiva -->
+      <div class="ui-page-actions header-group">
         <button
           v-if="plantillaDemoDisponible"
           type="button"
           class="btn btn-secondary btn-sm"
+          title="Carga datos de ejemplo válidos para probar la importación"
           @click="cargarDatosDeMuestra"
-          title="Carga datos sintéticos válidos para probar la importación en 1 clic"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <AppIcon name="file-text" :size="14" />
           Cargar plantilla demo
         </button>
-        <button
-          type="button"
-          class="btn btn-outline btn-sm"
-          @click="limpiarTodo"
-        >
-          Limpiar campos
+        <button type="button" class="btn btn-sm btn-destructive" @click="limpiarTodo">
+          <AppIcon name="trash" :size="14" />
+          Limpiar todo
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- Feedback de Éxito / Errores de Validación -->
-    <div v-if="resultadoImportacion?.importado" class="alert alert-success" role="alert">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <!-- Resultados -->
+    <div v-if="resultadoImportacion?.importado" class="alert alert-success" role="status">
+      <AppIcon name="check-circle" :size="20" />
       <div>
-        <strong>¡Importación completada con éxito!</strong>
-        <div>
-          Se importaron transaccionalmente:
-          <span v-for="(cant, tipo) in resultadoImportacion.filas" :key="tipo" class="chip-count">
+        <strong>Importación completada</strong>
+        <div class="chips-line">
+          Se guardaron:
+          <span v-for="(cant, tipo) in resultadoImportacion.filas" :key="tipo" class="chip-count ui-num">
             {{ cant }} {{ tipo }}
           </span>
         </div>
       </div>
     </div>
 
-    <div v-if="resultadoValidacion && resultadoValidacion.valido && !resultadoImportacion?.importado" class="alert alert-success" role="alert">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <div
+      v-if="resultadoValidacion && resultadoValidacion.valido && !resultadoImportacion?.importado"
+      class="alert alert-success"
+      role="status"
+    >
+      <AppIcon name="check-circle" :size="20" />
       <div>
-        <strong>Validación Exitosa</strong>: Todos los registros cumplen con las reglas institucionales.
-        <div>
-          Filas válidas detectadas:
-          <span v-for="(cant, tipo) in resultadoValidacion.filas" :key="tipo" class="chip-count">
+        <strong>Validación correcta.</strong> Todos los registros cumplen las reglas de la institución.
+        <div class="chips-line">
+          Filas válidas:
+          <span v-for="(cant, tipo) in resultadoValidacion.filas" :key="tipo" class="chip-count ui-num">
             {{ cant }} {{ tipo }}
           </span>
         </div>
@@ -56,44 +58,57 @@
     </div>
 
     <div v-if="listaErrores.length > 0" class="alert alert-danger" role="alert">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <AppIcon name="alert" :size="20" />
       <div>
-        <strong>Se encontraron {{ listaErrores.length }} inconsistencia(s) en los archivos CSV.</strong>
-        <p class="text-xs">Revisa la tabla de auditoría al final de la página para corregir los campos señalados.</p>
+        <strong>
+          Encontramos {{ listaErrores.length }}
+          {{ listaErrores.length === 1 ? 'problema' : 'problemas' }} en los archivos.
+        </strong>
+        <div>Revisa el detalle al final de la página, corrige y vuelve a validar.</div>
       </div>
     </div>
 
-    <div v-if="errorGenerico" class="alert alert-danger" role="alert">
-      {{ errorGenerico }}
-    </div>
+    <ErrorBanner
+      v-if="errorGenerico"
+      titulo="No pudimos procesar los archivos"
+      :mensaje="errorGenerico"
+      :reintentable="false"
+    />
 
-    <!-- Navegación por Pestañas de Archivos -->
-    <div class="tabs-nav">
+    <!-- I1: selector de archivo como segmented control con indicador de cargado -->
+    <div class="ui-segmented file-segmented" role="tablist" aria-label="Archivo CSV">
       <button
         v-for="f in tiposArchivo"
         :key="f.clave"
         type="button"
-        class="tab-btn"
-        :class="{ active: tabActivo === f.clave }"
+        role="tab"
+        :aria-selected="tabActivo === f.clave ? 'true' : 'false'"
+        :aria-checked="tabActivo === f.clave ? 'true' : 'false'"
         @click="tabActivo = f.clave"
       >
-        <span class="tab-title">{{ f.titulo }}</span>
-        <span v-if="archivos[f.clave].trim()" class="tab-badge-filled">✓ cargado</span>
+        <span
+          class="file-dot"
+          :class="{ 'is-filled': archivos[f.clave].trim() }"
+          :title="archivos[f.clave].trim() ? 'Con datos' : 'Vacío'"
+          aria-hidden="true"
+        ></span>
+        {{ tituloArchivo(f) }}
+        <span v-if="archivos[f.clave].trim()" class="visually-hidden">(con datos)</span>
       </button>
     </div>
 
-    <!-- Editor / Carga del Archivo Seleccionado -->
-    <div class="card file-editor-card">
+    <!-- Editor del archivo seleccionado -->
+    <section class="card file-editor-card">
       <div class="card-header file-card-header">
         <div>
-          <h2 class="card-title">{{ infoTabActivo.titulo }}</h2>
-          <p class="text-muted text-xs">
+          <h2 class="card-title">{{ tituloArchivo(infoTabActivo) }}</h2>
+          <p class="file-hint">
             Encabezados requeridos: <code class="header-code">{{ infoTabActivo.encabezados }}</code>
           </p>
         </div>
         <div class="file-card-actions">
           <label class="btn btn-secondary btn-sm file-upload-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <AppIcon name="upload" :size="14" />
             <span>Subir .csv</span>
             <input
               type="file"
@@ -104,10 +119,11 @@
           </label>
           <button
             type="button"
-            class="btn btn-outline btn-sm"
+            class="btn btn-sm btn-destructive-plain"
+            :disabled="!archivos[tabActivo].trim()"
             @click="archivos[tabActivo] = ''"
           >
-            Limpiar este archivo
+            Vaciar este archivo
           </button>
         </div>
       </div>
@@ -116,86 +132,95 @@
         <textarea
           v-model="archivos[tabActivo]"
           rows="10"
-          class="form-textarea font-mono text-sm csv-textarea"
-          :placeholder="`Pega aquí el contenido CSV o usa el botón 'Subir .csv'...\nEncabezados: ${infoTabActivo.encabezados}`"
+          class="form-textarea csv-textarea"
+          :aria-label="`Contenido CSV de ${tituloArchivo(infoTabActivo)}`"
+          :placeholder="`Pega aquí el contenido CSV o usa «Subir .csv».\nEncabezados: ${infoTabActivo.encabezados}`"
         ></textarea>
 
-        <div class="csv-meta-info">
-          <span>Líneas: {{ contarLineas(archivos[tabActivo]) }}</span>
-          <span>Tamaño: {{ tamanoKB(archivos[tabActivo]) }} KB</span>
+        <div class="csv-meta-info ui-num">
+          <span>{{ contarLineas(archivos[tabActivo]) }} líneas</span>
+          <span>{{ tamanoKB(archivos[tabActivo]) }} KB</span>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Barra de Acciones de Validación y Confirmación -->
-    <div class="actions-dock card">
-      <div class="actions-dock-left">
-        <span class="text-sm font-semibold">
-          Archivos listos para enviar: {{ totalArchivosConContenido }} de 5
-        </span>
-      </div>
+    <!-- I3: indicador de dos pasos con su estado -->
+    <section class="card actions-dock">
+      <ol class="steps" aria-label="Pasos de la importación">
+        <li class="step" :class="`step-${estadoValidacion}`">
+          <span class="step-badge" aria-hidden="true">
+            <AppIcon v-if="estadoValidacion === 'hecho'" name="check" :size="14" :stroke-width="3" />
+            <AppIcon v-else-if="estadoValidacion === 'error'" name="x" :size="14" :stroke-width="3" />
+            <template v-else>1</template>
+          </span>
+          <div>
+            <div class="step-title">Validar archivos</div>
+            <div class="step-state">{{ textoEstadoPaso(estadoValidacion) }}</div>
+          </div>
+        </li>
+        <li class="step-sep" aria-hidden="true"></li>
+        <li class="step" :class="`step-${estadoImportacion}`">
+          <span class="step-badge" aria-hidden="true">
+            <AppIcon v-if="estadoImportacion === 'hecho'" name="check" :size="14" :stroke-width="3" />
+            <template v-else>2</template>
+          </span>
+          <div>
+            <div class="step-title">Confirmar e importar</div>
+            <div class="step-state">{{ textoEstadoPaso(estadoImportacion) }}</div>
+          </div>
+        </li>
+      </ol>
 
-      <div class="actions-dock-right">
-        <!-- Paso 1: Validar -->
+      <div class="dock-right">
+        <span class="dock-count ui-num">{{ totalArchivosConContenido }} de 5 archivos con datos</span>
         <button
           type="button"
-          class="btn btn-secondary btn-lg"
+          class="btn btn-secondary"
           :disabled="validando || confirmando || totalArchivosConContenido === 0"
           @click="ejecutarValidacion"
         >
-          <span v-if="validando" class="spinner spinner-primary"></span>
-          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
-          <span>{{ validando ? 'Validando…' : '1. Validar CSVs' }}</span>
+          <span v-if="validando" class="spinner spinner-primary" aria-hidden="true"></span>
+          <AppIcon v-else name="file-check" :size="16" />
+          <span>{{ validando ? 'Validando…' : 'Validar archivos' }}</span>
         </button>
-
-        <!-- Paso 2: Confirmar -->
         <button
           type="button"
-          class="btn btn-primary btn-lg"
+          class="btn btn-primary"
           :disabled="confirmando || validando || totalArchivosConContenido === 0"
           @click="ejecutarConfirmacion"
         >
-          <span v-if="confirmando" class="spinner"></span>
-          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          <span>{{ confirmando ? 'Confirmando importación…' : '2. Confirmar e Importar' }}</span>
+          <span v-if="confirmando" class="spinner" aria-hidden="true"></span>
+          <AppIcon v-else name="save" :size="16" />
+          <span>{{ confirmando ? 'Importando…' : 'Confirmar e importar' }}</span>
         </button>
       </div>
-    </div>
+    </section>
 
-    <!-- Tabla Detallada de Errores de CSV si existen -->
-    <div v-if="listaErrores.length > 0" class="card errors-card">
-      <div class="card-header bg-danger-subtle">
-        <h2 class="card-title text-danger">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Detalle de Inconsistencias Detectadas ({{ listaErrores.length }})
-        </h2>
+    <!-- I4: errores agrupados por archivo -->
+    <section v-if="listaErrores.length > 0" class="errors-section">
+      <h2 class="ui-section-title">
+        Problemas encontrados
+        <span class="ui-section-count">{{ listaErrores.length }}</span>
+      </h2>
+      <div v-for="grupo in erroresPorArchivo" :key="grupo.archivo" class="error-group">
+        <h3 class="error-group-title">
+          <AppIcon name="file-text" :size="15" />
+          {{ grupo.archivo }}
+          <span class="ui-section-count">{{ grupo.errores.length }}</span>
+        </h3>
+        <div class="ui-grouped">
+          <div v-for="(err, idx) in grupo.errores" :key="idx" class="ui-row error-row">
+            <span class="error-fila ui-num">Fila {{ err.fila ?? '—' }}</span>
+            <div class="ui-row-main">
+              <div class="error-msg">{{ err.mensaje }}</div>
+              <div v-if="err.campo" class="ui-row-subtitle">
+                Campo <code class="ui-code campo-code">{{ err.campo }}</code>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Archivo</th>
-              <th>Fila</th>
-              <th>Campo</th>
-              <th>Mensaje de Error</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(err, idx) in listaErrores" :key="idx">
-              <td>
-                <span class="badge badge-indigo">{{ err.archivo }}</span>
-              </td>
-              <td class="font-mono font-bold">{{ err.fila ?? '—' }}</td>
-              <td>
-                <code class="text-xs font-bold">{{ err.campo || '—' }}</code>
-              </td>
-              <td class="text-danger font-medium">{{ err.mensaje }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -203,6 +228,8 @@
 import { ref, computed } from 'vue';
 import api, { obtenerMensajeError } from '../../../api';
 import { useNotificationStore } from '../../../stores/notification';
+import AppIcon from '../../../components/AppIcon.vue';
+import ErrorBanner from '../../../components/ErrorBanner.vue';
 
 const notifStore = useNotificationStore();
 const timeoutImportacionMs = 300_000;
@@ -238,6 +265,47 @@ const infoTabActivo = computed(
 
 const totalArchivosConContenido = computed(() => {
   return Object.values(archivos.value).filter((txt) => txt.trim().length > 0).length;
+});
+
+// Título con mayúscula solo al inicio ("Planes de Estudio" → "Planes de estudio")
+function tituloArchivo(f) {
+  const t = f?.titulo || '';
+  return t.charAt(0) + t.slice(1).toLowerCase();
+}
+
+// I3: estado de cada paso a partir de los resultados existentes
+const estadoValidacion = computed(() => {
+  if (validando.value) return 'activo';
+  if (resultadoImportacion.value?.importado) return 'hecho';
+  if (listaErrores.value.length > 0) return 'error';
+  if (resultadoValidacion.value?.valido) return 'hecho';
+  return 'pendiente';
+});
+
+const estadoImportacion = computed(() => {
+  if (confirmando.value) return 'activo';
+  if (resultadoImportacion.value?.importado) return 'hecho';
+  return 'pendiente';
+});
+
+function textoEstadoPaso(estado) {
+  return {
+    pendiente: 'Pendiente',
+    activo: 'En curso…',
+    hecho: 'Completado',
+    error: 'Con problemas',
+  }[estado];
+}
+
+// I4: errores agrupados por archivo
+const erroresPorArchivo = computed(() => {
+  const grupos = new Map();
+  listaErrores.value.forEach((err) => {
+    const archivo = err.archivo || 'General';
+    if (!grupos.has(archivo)) grupos.set(archivo, []);
+    grupos.get(archivo).push(err);
+  });
+  return [...grupos.entries()].map(([archivo, errores]) => ({ archivo, errores }));
 });
 
 function contarLineas(texto) {
@@ -344,7 +412,7 @@ D003,INF3,2,0`,
   resultadoValidacion.value = null;
   resultadoImportacion.value = null;
   listaErrores.value = [];
-  notifStore.success('Plantilla de datos cargada. Haz clic en "1. Validar CSVs".');
+  notifStore.success('Plantilla de datos cargada. Ahora pulsa «Validar archivos».');
 }
 
 function filtrarArchivosParaEnvio() {
@@ -430,100 +498,113 @@ async function ejecutarConfirmacion() {
 </script>
 
 <style scoped>
-.page-header {
+.importar-page {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text-main);
+.importar-page > .ui-page-header {
+  margin-bottom: 0.25rem;
 }
 
-.page-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-muted);
+.header-group {
+  gap: 0.5rem;
+}
+
+/* Acción destructiva (I2) */
+.btn-destructive {
+  background-color: var(--bg-card);
+  border-color: var(--border);
+  color: var(--danger);
+}
+
+.btn-destructive:hover:not(:disabled) {
+  background-color: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+
+.btn-destructive-plain {
+  background: transparent;
+  border-color: transparent;
+  color: var(--danger);
+}
+
+.btn-destructive-plain:hover:not(:disabled) {
+  background-color: var(--danger-bg);
+}
+
+.btn-destructive-plain:disabled {
+  background: transparent;
+  color: var(--text-light);
+}
+
+.chips-line {
+  margin-top: 0.25rem;
 }
 
 .chip-count {
   display: inline-block;
-  background: var(--fill-track);
+  margin: 0.15rem 0.35rem 0 0;
   padding: 0.1rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-weight: 700;
-  margin: 0 0.25rem;
-}
-
-/* Tabs */
-.tabs-nav {
-  display: flex;
-  gap: 0.35rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: -1px;
-  overflow-x: auto;
-}
-
-.tab-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  border-bottom: none;
-  padding: 0.75rem 1.15rem;
-  font-family: inherit;
-  font-size: 0.875rem;
+  border-radius: 999px;
+  background-color: var(--fill-track);
   font-weight: 600;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.15s ease;
+}
+
+/* Selector de archivo (I1) */
+.file-segmented {
+  align-self: flex-start;
+  flex-wrap: wrap;
+}
+
+.file-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: 0.55;
+}
+
+.file-dot.is-filled {
+  border-color: var(--success);
+  background-color: var(--success);
+  opacity: 1;
+}
+
+.ui-segmented button[aria-checked="true"] .file-dot.is-filled {
+  border-color: #ffffff;
+  background-color: #ffffff;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
   white-space: nowrap;
 }
 
-.tab-btn:hover {
-  color: var(--text-main);
-  background-color: var(--bg-surface);
-}
-
-.tab-btn.active {
-  background: var(--bg-card);
-  border-color: var(--border);
-  border-bottom-color: var(--bg-card);
-  color: var(--primary);
-}
-
-.tab-badge-filled {
-  font-size: 0.7rem;
-  color: var(--success);
-  font-weight: 700;
-}
-
 /* Editor */
-.file-editor-card {
-  border-top-left-radius: 0;
-  margin-bottom: 1.5rem;
-}
-
 .file-card-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: 1rem;
 }
 
+.file-hint {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
 .header-code {
-  background-color: var(--bg-surface);
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--primary);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.8125rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  background-color: var(--primary-light);
+  color: var(--accent-text);
 }
 
 .file-card-actions {
@@ -533,85 +614,169 @@ async function ejecutarConfirmacion() {
 }
 
 .file-upload-label {
+  position: relative;
   cursor: pointer;
 }
 
 .hidden-file-input {
-  display: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
+/* El contenido CSV sí es código: fuente monoespaciada */
 .csv-textarea {
-  width: 100%;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.825rem;
-  line-height: 1.6;
-  white-space: pre;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.875rem;
+  line-height: 1.55;
   resize: vertical;
+  border-radius: 10px;
 }
 
 .csv-meta-info {
   display: flex;
   gap: 1.25rem;
-  font-size: 0.75rem;
-  color: var(--text-muted);
   margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
 }
 
-/* Actions dock */
+/* Pasos (I3) */
 .actions-dock {
-  padding: 1.25rem 1.5rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  background-color: var(--bg-card);
+  padding: 1rem 1.25rem;
 }
 
-.actions-dock-right {
+.steps {
   display: flex;
-  gap: 0.85rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-/* Errors card */
-.errors-card {
-  margin-top: 1.5rem;
+.step {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.bg-danger-subtle {
-  background-color: var(--danger-bg);
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.font-bold {
+.step-badge {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border-strong);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
-.font-semibold {
+.step-title {
+  font-size: 0.9375rem;
   font-weight: 600;
+  color: var(--text-main);
 }
 
-.font-medium {
-  font-weight: 500;
-}
-
-.text-xs {
-  font-size: 0.75rem;
-}
-
-.text-sm {
-  font-size: 0.875rem;
-}
-
-.text-danger {
-  color: var(--danger);
-}
-
-.text-muted {
+.step-state {
+  font-size: 0.8125rem;
   color: var(--text-muted);
+}
+
+.step-activo .step-badge {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.step-hecho .step-badge {
+  border-color: var(--success);
+  background-color: var(--success);
+  color: #ffffff;
+}
+
+.step-hecho .step-state { color: var(--success-text); }
+
+.step-error .step-badge {
+  border-color: var(--danger);
+  background-color: var(--danger);
+  color: #ffffff;
+}
+
+.step-error .step-state { color: var(--danger-text); }
+
+.step-sep {
+  width: 36px;
+  height: 2px;
+  border-radius: 2px;
+  background-color: var(--border);
+}
+
+.dock-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dock-count {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* Errores agrupados (I4) */
+.errors-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.error-group + .error-group {
+  margin-top: 1rem;
+}
+
+.error-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.45rem;
+  padding: 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--danger-text);
+  text-transform: capitalize;
+}
+
+.error-row {
+  --ui-separator-inset: 6.2rem;
+  align-items: flex-start;
+}
+
+.error-fila {
+  flex-shrink: 0;
+  width: 4.4rem;
+  padding: 0.1rem 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--danger-text);
+}
+
+.error-msg {
+  font-size: 0.9375rem;
+  color: var(--text-main);
+}
+
+.campo-code {
+  padding: 0.05rem 0.35rem;
+  border-radius: 5px;
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
 }
 </style>
